@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import struct
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,13 +31,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--preset', choices=PRESETS, default='best')
     parser.add_argument('--seconds', type=int, choices=range(3, 3601), metavar='3..3600', default=180)
-    parser.add_argument('--level', type=int, choices=range(14), metavar='0..13')
+    start = parser.add_mutually_exclusive_group()
+    start.add_argument('--level', type=int, choices=range(14), metavar='0..13')
+    start.add_argument('--start-state', type=Path, help='Begin at a local saved scene; no movie is played.')
+    parser.add_argument('--width', type=int, default=1280)
+    parser.add_argument('--height', type=int, default=720)
+    parser.add_argument('--original-view', action='store_true', help='Use the selected console framing.')
     parser.add_argument('--desktop', action='store_true', help='Include the primary desktop and F12 window.')
     parser.add_argument('--fps-counter', action='store_true')
     parser.add_argument('--ffmpeg', help='Path to ffmpeg.exe (otherwise PATH or tools/ffmpeg.exe).')
     args = parser.parse_args()
     if os.name != 'nt':
         parser.error('Recording currently requires Windows.')
+    if not (640 <= args.width <= 7680 and 480 <= args.height <= 4320):
+        parser.error('Choose a window between 640x480 and 7680x4320.')
     ffmpeg = args.ffmpeg or shutil.which('ffmpeg') or str(ROOT/'tools/ffmpeg.exe')
     if not Path(ffmpeg).is_file():
         parser.error('Install FFmpeg and add ffmpeg.exe to PATH, or use --ffmpeg PATH.')
@@ -64,17 +72,37 @@ def main():
     folder = ROOT/'build/video-recordings'/dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S_%f')
     folder.mkdir(parents=True)
     shutil.copy2(ROOT/'profiles'/(PRESETS[args.preset]+'.ini'), folder/'resources.ini')
-    (folder/'game.ini').write_text('opengl = 0\nscale = 3\nwindow_size = 1280 x 720\n'
+    (folder/'game.ini').write_text(f'opengl = 0\nscale = 3\nwindow_size = {args.width} x {args.height}\n'
                                  'fullscreen = 0\nvsync = 0\naudio = 1\nvolume = 10\n'
-                                 'widescreen = adaptive\nwidescreen_enemies = out of view\n')
-    command += ['--config', str(folder/'game.ini'), '--resource-profile', str(folder/'resources.ini'),
-                '--wav', str(folder/'game-audio.wav'), '--wav-seconds', str(args.seconds+15),
-                '--record', str(folder/'input.rec')]
-    if args.level is not None:
-        command += ['--practice-level', str(args.level)]
+                                 'widescreen = '+('off' if args.original_view else 'adaptive')+
+                                 '\nwidescreen_enemies = out of view\n')
+    command += ['--config', str(folder/'game.ini'), '--resource-profile', str(folder/'resources.ini')]
     env = {k: v for k, v in os.environ.items() if not k.startswith(('TLK_', 'SDL_', 'SNESRECOMP_'))}
     env.update(TLK_SMOOTH_UPDATES='1', TLK_FPS_COUNTER=str(int(args.fps_counter)),
                TLK_FPS_LOG=str(folder/'updates.csv'))
+    starting_field = 0
+    if args.level is not None:
+        print('Preparing the selected level before recording...', flush=True)
+        state = folder/'start.state'
+        prepare = command + ['--practice-level', str(args.level), '--frames', '1700',
+                             '--save-at', '1700', str(state), '--no-record', '--no-pace', '--no-audio']
+        with (folder/'prepare.log').open('wb') as log:
+            subprocess.run(prepare, cwd=ROOT,
+                           env=dict(env, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'),
+                           stdout=log, stderr=subprocess.STDOUT, check=True, timeout=60,
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+        command += ['--load', str(state)]
+        starting_field = 1700
+    elif args.start_state:
+        state = args.start_state.resolve()
+        raw = state.read_bytes()
+        offset = 96 if raw[:8] == b'TLKFSV01' else 0
+        if raw[offset:offset+8] != b'TLKSTAT1':
+            raise RuntimeError('The supplied scene is not a supported save state.')
+        starting_field = struct.unpack_from('<I', raw, offset+12)[0]
+        command += ['--load', str(state)]
+    command += ['--wav', str(folder/'game-audio.wav'), '--wav-seconds', str(args.seconds+15),
+                '--record', str(folder/'input.rec')]
     user = C.WinDLL('user32', use_last_error=True)
     user.SetProcessDPIAware()
     enum_type = C.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
@@ -176,7 +204,12 @@ def main():
         raise RuntimeError('MP4 is empty; intermediate files retained.')
     (folder/'session.json').write_text(json.dumps(dict(player_sha256=info['player_sha256'], preset=args.preset,
         desktop=args.desktop, audio='mixed game output; start-time aligned; no microphone/system audio',
-        audio_trim_seconds=offset, game_exit_code=game.returncode, video=str(folder/'video.mp4')), indent=2))
+        audio_trim_seconds=offset, game_exit_code=game.returncode, video=str(folder/'video.mp4'),
+        starting_field=starting_field, window=[args.width,args.height],
+        enemy_spawning='out of view', movie_playback=False), indent=2))
+    recording = folder/'input.rec'
+    if starting_field and recording.is_file():
+        recording.write_bytes(bytes(starting_field*2)+recording.read_bytes())
     # Keep one finished compressed copy, not two videos and an uncompressed WAV.
     audio.unlink(); (folder/'screen.mp4').unlink()
     (folder.parent/'latest.txt').write_text(str(folder/'video.mp4')+'\n')

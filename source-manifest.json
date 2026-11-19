@@ -2979,7 +2979,7 @@
     "tools/verify_windows.py": "183f7ba2a8e985d223bc2f2948726905cd1148332fe750bc2c4fd510c2c3af31",
     "tools/windows_capture.py": "3cd5c5d5553ebbf15531da5ad6c060f94ab71beb876a41308e4ac6d75863f2d5",
     "tools/windows_json_pipe.py": "82e13375739b402a3b22db77bacd99be09540243deedaebcad6fc9bb855e8e1b",
-    "tools/record_video.py": "6a1517ec11d260ae6da5ea0221ca37aee2e4340191cca018f21178c1b76723ae",
+    "tools/record_video.py": "3d9d9bad22402a632dc23f0b61205427582bf309907b22a9e59cf28fb69690b8",
     "profiles/available-md.ini": "699855c962d05aa63f2f3fbfb85ce742ad370e770bbe6011cd2fbea99faec2ac",
     "profiles/be-prepared-md.ini": "67d25c68ab8e31034a09320b05f8962fc5fe17cf99600fc0f4e3e1b9f5e89512",
     "profiles/bug-hunt-1-md.ini": "d9863cdc6e4514d35a3df3f240a822f14b2cf814e7928fc960647d2a2bf0f7fa",
