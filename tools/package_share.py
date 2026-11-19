@@ -22,7 +22,7 @@ def main():
     if not out.is_relative_to((ROOT/'build').resolve()):
         parser.error('Put release staging under ignored build/.')
     out.mkdir(parents=True, exist_ok=False)
-    stage = out/'LionKing-Your-Edition'
+    stage = out/'LionKing-Ultimate-Edition'
     stage.mkdir()
     launcher = (ROOT/'scripts/RunInstalledPreview.ps1').read_text()
     relative = re.search(r"\$package = Join-Path \$projectRoot '([^']+)'", launcher).group(1)
@@ -79,7 +79,7 @@ def main():
     # A package manifest lists every shipped file; development package provenance
     # remains separate from the file-integrity manifest for this public ZIP.
     (stage/'FILES.sha256').write_text(''.join(f'{sha}  {name}\n' for name, sha in sorted(files.items())))
-    archive = out/'LionKing-Your-Edition-Windows-preview6996.zip'
+    archive = out/'LionKing-Ultimate-Edition-Windows-preview6996.zip'
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for path in sorted(stage.rglob('*')):
             if path.is_file():
