@@ -1,0 +1,96 @@
+file: runner/tlk_resource_editor_sdl.h
+
+@@ keep-complete-capability-description
+<<<<
+static char s_resource_message[256];
+====
+static char s_resource_message[2048];
+static int s_resource_page;
+>>>>
+
+@@ reset-help-page-with-message count=5
+<<<<
+s_resource_message[0]=0;
+====
+s_resource_message[0]=0;s_resource_page=0;
+>>>>
+
+@@ page-complete-scope-descriptions
+<<<<
+static void ResourceInfo(void) {
+====
+/* The modal owns navigation while open; the selected tree node stays put. */
+static const char *ResourceMessageNext(const char *text) {
+    int n=0;while(text[n] && text[n]!='\n' && n<30)n++;
+    text+=n;if(*text=='\n')text++;return text;
+}
+static int ResourceMessagePages(void) {
+    int lines=0;const char *text=s_resource_message;
+    while(*text) { lines++;text=ResourceMessageNext(text); }
+    return lines?(lines+8)/9:1;
+}
+static void ResourceMessageMove(int delta) {
+    int pages=ResourceMessagePages();s_resource_page+=delta;
+    if(s_resource_page<0)s_resource_page=0;
+    if(s_resource_page>=pages)s_resource_page=pages-1;
+}
+static const char *ResourceMessageStart(void) {
+    ResourceMessageMove(0);const char *text=s_resource_message;
+    for(int i=0;i<s_resource_page*9 && *text;i++)text=ResourceMessageNext(text);
+    return text;
+}
+static void ResourceInfo(void) {
+    s_resource_page=0;
+>>>>
+
+@@ modal-navigation-and-close
+<<<<
+    if(s_resource_message[0]) { s_resource_message[0]=0;s_resource_page=0;return; }
+====
+    if(s_resource_message[0]) {
+        if(key==SDLK_DOWN || key==SDLK_PAGEDOWN || key==SDLK_RIGHT)ResourceMessageMove(1);
+        else if(key==SDLK_UP || key==SDLK_PAGEUP || key==SDLK_LEFT)ResourceMessageMove(-1);
+        else if(key==SDLK_F12)ResourceClose(1);
+        else { s_resource_message[0]=0;s_resource_page=0; }
+        return;
+    }
+>>>>
+
+@@ gamepad-navigation-hints
+<<<<
+    Ink(180,190,210);DrawText(4,16,"Arrows:move/fold Enter:source");DrawText(4,26,"Tab:actions F7:MD H:info");
+====
+    Ink(180,190,210);DrawText(4,16,SDL_HasGamepad()?"D-pad:move/fold A:source":"Arrows:move/fold Enter:source");
+    DrawText(4,26,SDL_HasGamepad()?"RB:actions Y:info B:back":"Tab:actions F7:MD H:info");
+>>>>
+
+@@ fit-live-scope-hint
+<<<<
+        node->change==TLK_CHANGE_LIVE?"MD: live; H shows supported scope":node->change==TLK_CHANGE_LEVEL?"MD: level restart; H shows scope":"MD: game restart; H shows scope");
+====
+        node->change==TLK_CHANGE_LIVE?"MD: live; H: supported scope":node->change==TLK_CHANGE_LEVEL?"MD: level restart; H: scope":"MD: game restart; H: scope");
+>>>>
+
+@@ render-paged-modal
+<<<<
+        ResourceBox(4,72,248,122,0x182133);Ink(255,220,160);ResourceText(8,78,s_resource_message,30,10);
+        Ink(190,190,190);DrawText(8,182,"Press a key to return");
+====
+        ResourceBox(4,72,248,122,0x182133);Ink(255,220,160);ResourceText(8,78,ResourceMessageStart(),30,9);
+        char page[32];snprintf(page,sizeof page,"Up/Down: page %d/%d",s_resource_page+1,ResourceMessagePages());
+        Ink(190,190,190);DrawText(8,172,page);DrawText(8,182,"Enter/B: return");
+>>>>
+
+@@ wheel-scrolls-modal-or-tree
+<<<<
+    if(event->type==SDL_EVENT_MOUSE_WHEEL) { ResourceMove(event->wheel.y>0?-3:3);return 1; }
+====
+    if(event->type==SDL_EVENT_MOUSE_WHEEL) {
+        float amount=event->wheel.y;if(event->wheel.direction==SDL_MOUSEWHEEL_FLIPPED)amount=-amount;
+        if(amount!=0) {
+            if(s_resource_message[0])ResourceMessageMove(amount>0?-1:1);
+            else ResourceMove(amount>0?-3:3);
+        }
+        return 1;
+    }
+>>>>

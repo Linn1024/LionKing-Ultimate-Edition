@@ -1,0 +1,16 @@
+"""Bonus background evidence per scene: fixed hardware scroll and shared Hunt initializer/assets."""
+import json,struct,importlib.util
+from pathlib import Path
+from audit_scenes import ROOT
+from build_pride_compiled_hooks import digest
+out=ROOT/'build/bonus964-background';out.mkdir(exist_ok=True);m=(ROOT/'Lion King, The (World).md').read_bytes();spec=importlib.util.spec_from_file_location('lz',ROOT/'engine/tools/re/decompress.py');lz=importlib.util.module_from_spec(spec);spec.loader.exec_module(lz);records={};cases=[]
+for n in range(10,14):
+ rec=0x1cfdb4+n*48;bp,tp=struct.unpack_from('>2I',m,rec+24);pp=struct.unpack_from('>I',m,rec+44)[0];d=struct.unpack_from('>I',m,rec+32)[0];up,init=struct.unpack_from('>2I',m,d);bg,_=lz.decompress(m,bp);tiles,_=lz.decompress(m,tp);used={int.from_bytes(bg[i:i+2],'big')&2047 for i in range(0,len(bg),2)};records[str(n)]=dict(background=hex(bp),tiles=hex(tp),palette=hex(pp),update=hex(up),initialize=hex(init),background_bytes=len(bg),tile_bytes=len(tiles))
+ for name,fields in [('early',[4400,4500,4600] if n==10 else [13130,13160] if n==13 else []),('late',[41400,41440] if n==12 else [])]:
+  for f in fields:
+   root=ROOT/'build/bonus959-reference'/name;v=(root/f'{f}-VRAM.bin').read_bytes();ram=(root/f'{f}-68K RAM.bin').read_bytes();pal=(root/f'{f}-CRAM.bin').read_bytes();vs=(root/f'{f}-VSRAM.bin').read_bytes();r=dict(level=n,field=f,folder=name,names_match=bg==v[0xc000:0xc000+len(bg)],used_tiles_match=all(tiles[t*32:t*32+32]==v[t*32:t*32+32] for t in used),palette_matches=pal==m[pp:pp+128],scroll_x=int.from_bytes(v[0xfc02:0xfc04],'big')&1023,scroll_y=int.from_bytes(vs[2:4],'big'),line_pointer=hex(int.from_bytes(ram[0xc60c:0xc610],'big')));cases.append(r)
+normal=[r for r in cases if r['palette_matches'] and r['line_pointer']=='0x0']
+checks=dict(all_names=all(r['names_match'] for r in cases),all_used_tiles=all(r['used_tiles_match'] for r in cases),normal_actual_scenes={r['level'] for r in normal}=={10,12,13},normal_fixed_scroll=all(r['scroll_x']==r['scroll_y']==0 for r in normal),hunt_assets_and_initialization_identical=records['11']==records['12']==records['13'])
+for r in cases:r['phase']='normal' if r in normal else 'initialization/palette transition'
+
+paths=[Path(__file__),ROOT/'build/bonus959-reference/report.json'];(out/'report.json').write_text(json.dumps(dict(result='PASS' if all(checks.values()) else 'OBSERVED',checks=checks,records=records,cases=cases,scope='Bug Toss10 and Hunt12/13 live VDP. Early Hunt captures retain prior scroll until delayed initialization completes; normal captures use fixed scroll. Update08C252 sets offsets0; Hunt08EA90 waits30 then calls common08E738 clear C60C/register11=0. Hunt11 uses byte-identical background/tiles/palette and same init/update as12/13, not an assumed plane correspondence. Native11 must still have its own exact descriptor/plane ownership.',source_sha256={p.relative_to(ROOT).as_posix():digest(p) for p in paths}),indent=2)+'\n');print(checks,cases,flush=True)

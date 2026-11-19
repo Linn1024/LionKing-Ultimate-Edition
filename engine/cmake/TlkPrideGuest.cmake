@@ -1,0 +1,50 @@
+# Regenerate/compile the reviewed guest hook banks and original RNG-clear seam.
+# The framework is patched only in a private copy; game C stays under build/.
+include_guard(GLOBAL)
+set(_TLK_PRIDE_GUEST_ENGINE "${CMAKE_CURRENT_LIST_DIR}/..")
+
+function(tlk_add_pride_guest_objects target template rom generation)
+    if(NOT TARGET "${template}")
+        message(FATAL_ERROR "Pride guest template target is missing: ${template}")
+    endif()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    get_filename_component(engine "${_TLK_PRIDE_GUEST_ENGINE}" ABSOLUTE)
+    get_filename_component(generation "${generation}" ABSOLUTE)
+    if(NOT EXISTS "${generation}/generation-report.json")
+        execute_process(COMMAND "${Python3_EXECUTABLE}" "${engine}/scripts/generate_pride_guest.py"
+            --rom "${rom}" --out "${generation}" RESULT_VARIABLE result)
+        if(NOT result EQUAL 0)
+            message(FATAL_ERROR "Pride guest generation failed: ${result}")
+        endif()
+    endif()
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${engine}/scripts/validate_pride_generation.py"
+        --rom "${rom}" --generation "${generation}" RESULT_VARIABLE result)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Pride guest source/output validation failed: ${result}; use a fresh generation directory")
+    endif()
+    file(READ "${generation}/generation-report.json" report)
+    string(JSON count LENGTH "${report}" instrumented_units)
+    math(EXPR last "${count} - 1")
+    set(sources "${generation}/rng/bankc0_part1f_v2.c")
+    foreach(index RANGE 0 ${last})
+        string(JSON unit GET "${report}" instrumented_units ${index})
+        list(APPEND sources "${generation}/hooks/${unit}")
+    endforeach()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${generation}/generation-report.json" "${engine}/scripts/generate_pride_guest.py"
+        "${engine}/scripts/prepare_pride_codegen.py" "${engine}/scripts/validate_pride_generation.py"
+        "${engine}/recomp/pride_hooks.json" "${engine}/recomp/pride_native_hooks.json"
+        "${engine}/scripts/native_hook_generation.py")
+    file(GLOB inputs CONFIGURE_DEPENDS "${engine}/recomp/*.cfg" "${engine}/patches/snesrecomp/*.patch")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${inputs})
+    add_library("${target}" OBJECT ${sources})
+    foreach(property INCLUDE_DIRECTORIES COMPILE_DEFINITIONS COMPILE_OPTIONS)
+        get_target_property(value "${template}" "${property}")
+        if(value)
+            set_property(TARGET "${target}" PROPERTY "${property}" "${value}")
+        endif()
+    endforeach()
+    target_include_directories("${target}" PRIVATE "${engine}/runner/pride")
+    set_property(TARGET "${target}" PROPERTY C_STANDARD 11)
+    set_property(TARGET "${target}" PROPERTY C_STANDARD_REQUIRED TRUE)
+endfunction()

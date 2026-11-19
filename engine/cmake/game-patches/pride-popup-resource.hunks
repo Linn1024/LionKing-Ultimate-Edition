@@ -1,0 +1,22 @@
+file: runner/tlk_resources.c
+
+@@ popup-parent-after-standalone-death-and-rng-nodes
+<<<<
+    {"graphics.sprites.effects.pickup_arrival.frames", "Animation artwork", 108, 1, 0, 1,
+====
+    {"graphics.sprites.effects.pickup_arrival.frames", "Animation artwork", 110, 1, 0, 1,
+>>>>
+
+@@ popup-palette-parent-after-standalone-death-and-rng-nodes
+<<<<
+    {"graphics.sprites.effects.pickup_arrival.palette", "Palette", 108, 1, 0, 1,
+====
+    {"graphics.sprites.effects.pickup_arrival.palette", "Palette", 110, 1, 0, 1,
+>>>>
+
+@@ popup-position-parent-after-standalone-death-and-rng-nodes
+<<<<
+    {"graphics.sprites.effects.pickup_arrival.position", "HUD arrival position", 108, 1, 0, 1,
+====
+    {"graphics.sprites.effects.pickup_arrival.position", "HUD arrival position", 110, 1, 0, 1,
+>>>>

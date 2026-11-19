@@ -1,0 +1,10 @@
+"""Publish the four qualified Graveyard fixes and installer-prepared death tokens."""
+from pathlib import Path
+wrapper=Path(__file__).with_name('publish_graveyard689.py')
+s=wrapper.read_text().replace('build/graveyard684/build-report.json','build/graveyard708/build-report.json').replace('build/graveyard688-qualified/report.json','build/graveyard714-qualified/report.json').replace('build/graveyard683-helper','build/graveyard707-helper')
+s=s.replace('dist/installed-preview684','dist/installed-preview708').replace('dist/installed-preview659','dist/installed-preview684')
+s=s.replace('build/graveyard689-publication','build/graveyard715-publication').replace('build/graveyard686-setup/data','build/graveyard713-setup/data')
+s=s.replace("info['graveyard_skull_scope']=", "info['graveyard_coverage_fixes']=")
+s=s.replace('11 original MD eye-socket images/colors under independent existing hyena choices. Independent installed MD floor tags for hyena turn/jump decisions; opening skull jump geometry and synchronization verified against original MD. Previous gameplay records preserved. Native sequence timing and unrelated behavior remain; MD death motion still pending.', 'Scripted Graveyard hyena artwork/colors, reaction voice and ground decisions now share verified ownership. Independent MD hyena contact boxes and cub roar delay. Independent nonfinal health-death movement uses installed sequence tokens; native retry/final-life logic remains. Focused Windows and gameplay checks; no universal MD AI claim.')
+s=s.replace('Preview684 fixes MD opening-skull hyena convergence and supplies the separate MD eye-socket artwork/colors. Hyena turns and jump approach is independently selectable under Gameplay / Level layouts / Elephant Graveyard. Current installation updated automatically; settings preserved.', 'Preview708 fixes the scripted Graveyard hyena artwork/colors/reaction voice, adds independent MD hyena contact boxes, MD cub roar timing in Graveyard, and nonfinal health-death movement toward screen centre. Current installation updated automatically; settings preserved.')
+exec(compile(s,str(wrapper),'exec'))

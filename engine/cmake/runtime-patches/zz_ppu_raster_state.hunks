@@ -1,0 +1,89 @@
+# The raster journals contain writes for the completed and recording fields.
+# They are separate from Ppu and otherwise survive a visible state load.
+# Export an internal pointer-free rollback record; no framework edits.
+file: runner/src/snes/ppu.c
+
+@@ raster-rollback-record
+<<<<
+/* Snapshot of the journal as the renderer will consume it, for the debug
+====
+/* Internal rollback ABI, like PpuRollbackResidue. Unused journal slots and
+ * padding are canonical zeros; the render pointer becomes a field index. */
+typedef struct {
+  uint32_t magic, version, cur, armed, completed, rendering, next, render_index;
+  uint8_t hdmaen, hdma_pending, oamAdr, oamInHigh, oamSecondWrite, oamBuffer;
+  PpuRasterField field[2];
+} TlkRasterState;
+enum { TLK_RASTER_STATE_BYTES = 65536 };
+_Static_assert(sizeof(TlkRasterState) <= TLK_RASTER_STATE_BYTES, "raster state overflow");
+
+void tlk_ppu_raster_state_save(void *out) {
+  TlkRasterState state;
+  memset(&state, 0, sizeof state);
+  state.magic = 0x4a525050u; /* PPRJ */
+  state.version = 1;
+  state.cur = (uint32_t)s_raster_cur;
+  state.armed = (uint32_t)s_raster_armed;
+  state.completed = (uint32_t)s_raster_have_completed;
+  state.rendering = (uint32_t)s_raster_rendering;
+  state.next = (uint32_t)s_raster_next;
+  state.render_index = !s_raster_render ? 2u : s_raster_render == &s_field[0] ? 0u : 1u;
+  state.hdmaen = s_raster_hdmaen;
+  state.hdma_pending = (uint8_t)s_raster_hdmaen_pending;
+  state.oamAdr = s_raster_port.oamAdr;
+  state.oamInHigh = s_raster_port.oamInHigh;
+  state.oamSecondWrite = s_raster_port.oamSecondWrite;
+  state.oamBuffer = s_raster_port.oamBuffer;
+  for (unsigned i = 0; i < 2; i++) {
+    PpuRasterField *dst = &state.field[i];
+    const PpuRasterField *src = &s_field[i];
+    assert(src->count >= 0 && src->count <= PPU_RASTER_MAX);
+    memcpy(dst->regs, src->regs, sizeof dst->regs);
+    dst->scrollPrev = src->scrollPrev; dst->scrollPrev2 = src->scrollPrev2;
+    dst->m7prev = src->m7prev; dst->hdmaen = src->hdmaen;
+    dst->count = src->count; dst->dropped = src->dropped;
+    for (int j = 0; j < src->count; j++) {
+      dst->e[j].key = src->e[j].key;
+      dst->e[j].reg = src->e[j].reg;
+      dst->e[j].val = src->e[j].val;
+    }
+  }
+  memset(out, 0, TLK_RASTER_STATE_BYTES);
+  memcpy(out, &state, sizeof state);
+}
+
+bool tlk_ppu_raster_state_valid(const void *data) {
+  TlkRasterState state;
+  memcpy(&state, data, sizeof state);
+  if (state.magic != 0x4a525050u || state.version != 1 || state.cur > 1 ||
+      state.armed > 1 || state.completed > 1 || state.rendering > 1 ||
+      state.render_index > 2 || state.hdma_pending > 1 ||
+      state.oamInHigh > 1 || state.oamSecondWrite > 1) return false;
+  for (unsigned i = 0; i < 2; i++) {
+    const PpuRasterField *f = &state.field[i];
+    if (f->count < 0 || f->count > PPU_RASTER_MAX) return false;
+    for (int j = 0; j < f->count; j++)
+      if (f->e[j].key > 261 || !raster_reg_journaled(f->e[j].reg) ||
+          (j && f->e[j].key < f->e[j-1].key)) return false;
+  }
+  return state.next <= PPU_RASTER_MAX &&
+      (!state.rendering || (state.armed && state.render_index < 2 &&
+       state.next <= (uint32_t)state.field[state.render_index].count));
+}
+
+void tlk_ppu_raster_state_load(const void *data) {
+  TlkRasterState state;
+  assert(tlk_ppu_raster_state_valid(data));
+  memcpy(&state, data, sizeof state);
+  memcpy(s_field, state.field, sizeof s_field);
+  s_raster_cur = (int)state.cur; s_raster_armed = (int)state.armed;
+  s_raster_have_completed = (int)state.completed;
+  s_raster_rendering = (int)state.rendering; s_raster_next = (int)state.next;
+  s_raster_render = state.render_index == 2 ? NULL : &s_field[state.render_index];
+  s_raster_hdmaen = state.hdmaen; s_raster_hdmaen_pending = state.hdma_pending;
+  s_raster_port.oamAdr = state.oamAdr; s_raster_port.oamInHigh = state.oamInHigh;
+  s_raster_port.oamSecondWrite = state.oamSecondWrite; s_raster_port.oamBuffer = state.oamBuffer;
+}
+
+/* Snapshot of the journal as the renderer will consume it, for the debug
+>>>>

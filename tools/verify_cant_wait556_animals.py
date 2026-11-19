@@ -1,0 +1,21 @@
+"""Focused first rhino/monkey segment: native control, three MD cues and independent leaves."""
+import csv,json,os,re,subprocess
+from pathlib import Path
+from PIL import Image,ImageChops
+from audit_scenes import ROOT
+from build_pride_compiled_hooks import digest
+from pride_arena_history import bound
+reference=ROOT/'build/cant-wait551-roar/report.json';r=bound(reference)
+build=ROOT/'build/cant-wait555/build-report.json';bound(build)
+out=ROOT/'build/cant-wait556-animals';out.mkdir(exist_ok=True);commands={};images={};scenes={};logs={};sounds={}
+leaves={'rhino':'audio.effects.world.cant_wait.rhino','contacts':'audio.effects.world.cant_wait.monkey_contacts','reaction':'audio.effects.world.cant_wait.monkey_reaction'}
+env={k:v for k,v in os.environ.items() if not k.startswith(('TLK_','SDL_','SNESRECOMP_'))}
+for name,exe,selected in [('old',ROOT/'build/cant-wait550/player.exe',()),('native',build.parent/'player.exe',()),('all',build.parent/'player.exe',tuple(leaves)),('rhino',build.parent/'player.exe',('rhino',)),('reaction',build.parent/'player.exe',('reaction',))]:
+    folder=out/name;folder.mkdir(exist_ok=True);cmd=r['commands']['md'].copy();cmd[0]=str(exe)
+    for flag,value in (('--config',str(folder/'host.ini')),('--resource-profile',str(folder/'resources.ini')),('--dump-window',str(folder/'window.png')),('--dump-scene',str(folder/'scene.json')),('--wav',str(folder/'audio.wav'))):cmd[cmd.index(flag)+1]=value
+    (folder/'host.ini').write_text('opengl = 0\nscale = 3\n');(folder/'resources.ini').write_text((reference.parent/'md/resources.ini').read_text()+''.join(leaves[k]+' = md\n' for k in selected))
+    with (folder/'run.log').open('wb') as log:subprocess.run(cmd,cwd=ROOT,env=dict(env,TLK_AUDIO_EVENTS=str(folder/'events.csv'),TLK_MD_SOUND_COMMANDS=str(folder/'commands.csv'),TLK_AUDIO_STEMS=str(folder/'stems.csv')),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=25,creationflags=subprocess.CREATE_NO_WINDOW)
+    commands[name]=cmd;images[name]=Image.open(folder/'window.png').convert('RGB');scenes[name]=json.loads((folder/'scene.json').read_text());logs[name]=(folder/'run.log').read_text();sounds[name]={(x['selector'],x['value']) for x in csv.DictReader((folder/'commands.csv').open())}
+checks=dict(actual_second_level=all(s['level']==1 and s['latched_gameplay']['descriptor']==0x3b9 for s in scenes.values()),native_guest_preserved=re.findall(r'frame=\d+ frame_sha256=\w+ wram_sha256=\w+',logs['old'])==re.findall(r'frame=\d+ frame_sha256=\w+ wram_sha256=\w+',logs['native']),native_pcm_preserved=digest(out/'old/audio.wav')==digest(out/'native/audio.wav'),native_window_preserved=ImageChops.difference(images['old'],images['native']).getbbox() is None,rhino_fm106=('2','106') in sounds['all'],contacts_fm119=('2','119') in sounds['all'],reaction_pcm8=('19','8') in sounds['all'],rhino_independent=('2','106') in sounds['rhino'] and not ({('2','119'),('19','8')}&sounds['rhino']),reaction_independent=('19','8') in sounds['reaction'] and not ({('2','106'),('2','119')}&sounds['reaction']),gameplay_picture_preserved=all(ImageChops.difference(images['native'],im).getbbox() is None for im in images.values()),gameplay_values_preserved=all(s['latched_gameplay']==scenes['native']['latched_gameplay'] for s in scenes.values()),selected_audio_changes=digest(out/'all/audio.wav')!=digest(out/'native/audio.wav'))
+paths=[Path(__file__),reference,build,ROOT/'build/cant-wait553-cues/report.json']
+(out/'report.json').write_text(json.dumps(dict(result='PASS' if all(checks.values()) else 'FAIL',checks=checks,commands=commands,sounds={k:sorted(v) for k,v in sounds.items()},scope='One short first-animal segment; source-specific native controls and isolated rhino/reaction choices, original cue values and unchanged visible gameplay. Reaction voice follows the native wait instead of an extra fixed timer. Native-music, current saves/pause/restart and remaining cues still need qualification.',source_sha256={p.relative_to(ROOT).as_posix():digest(p) for p in paths},artifacts_sha256={p.relative_to(out).as_posix():digest(p) for p in out.rglob('*') if p.is_file() and p.name!='report.json'}),indent=2)+'\n');print(checks,{k:sorted(v) for k,v in sounds.items()},flush=True)

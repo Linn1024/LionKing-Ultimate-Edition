@@ -1,0 +1,67 @@
+# Preserve both PPU raster journals with native execution/rollback state.
+# Version8 is an internal opaque-backend change, not an outer save version.
+file: runner/src/common_rtl.c
+
+@@ raster-state-abi
+<<<<
+#define RTL_RB_RESIDUE_VERSION 7u
+====
+#define RTL_RB_RESIDUE_VERSION 8u
+enum { TLK_RASTER_STATE_BYTES = 65536 };
+void tlk_ppu_raster_state_save(void *);
+bool tlk_ppu_raster_state_valid(const void *);
+void tlk_ppu_raster_state_load(const void *);
+>>>>
+
+@@ raster-state-storage
+<<<<
+  RtlApuFrameClock apu_frame_clock;
+} RtlRollbackResidue;
+====
+  RtlApuFrameClock apu_frame_clock;
+  /* v8: CPU writes already journaled for the current/completed video fields.
+   * These globals survive ordinary PPU deserialization unless restored here. */
+  uint8 raster[TLK_RASTER_STATE_BYTES];
+} RtlRollbackResidue;
+>>>>
+
+@@ raster-state-capture
+<<<<
+  r->apu_frame_clock = g_apu_frame_clock;
+====
+  r->apu_frame_clock = g_apu_frame_clock;
+  tlk_ppu_raster_state_save(r->raster);
+>>>>
+
+@@ raster-state-apply
+<<<<
+  g_apu_frame_clock = r->apu_frame_clock;
+====
+  g_apu_frame_clock = r->apu_frame_clock;
+  if (r->version >= 8u) tlk_ppu_raster_state_load(r->raster);
+  else ppu_rasterReset(); /* Legacy execution records omitted these journals. */
+>>>>
+
+@@ legacy-execution-raster-sizes
+<<<<
+  if (size != sizeof(s_loaded_execution) && size != v6_size) return false;
+====
+  const uint32 v7_size = (uint32)offsetof(RtlRollbackResidue, raster);
+  if (size != sizeof(s_loaded_execution) && size != v6_size && size != v7_size) return false;
+>>>>
+
+@@ validate-execution-raster
+<<<<
+      s_loaded_execution.version == (s_loaded_execution_keeps_clock ? 6u : RTL_RB_RESIDUE_VERSION);
+====
+      s_loaded_execution.version == (size == v6_size ? 6u : size == v7_size ? 7u : RTL_RB_RESIDUE_VERSION) &&
+      (size != sizeof(s_loaded_execution) || tlk_ppu_raster_state_valid(s_loaded_execution.raster));
+>>>>
+
+@@ validate-rollback-raster
+<<<<
+      residue.version != RTL_RB_RESIDUE_VERSION)
+====
+      residue.version != RTL_RB_RESIDUE_VERSION ||
+      !tlk_ppu_raster_state_valid(residue.raster))
+>>>>

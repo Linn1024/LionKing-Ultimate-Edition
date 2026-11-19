@@ -1,0 +1,7 @@
+"""Exercise the two new public CMD shortcuts and their actual applied choices."""
+from pathlib import Path
+template=Path(__file__).with_name('verify_next775_installed.py');s=template.read_text().replace('build/next774-publication/report.json','build/hakuna860-publication/report.json').replace('build/next775-installed','build/hakuna861-installed')
+a=s.index('for level,name,settings,keys in ');b=s.index('\n folder=',a)
+s=s[:a]+'''for level,name,settings,keys in [(5,'Play Hakuna Matata MD.cmd','hakuna-md',('graphics.scenery.background','graphics.sprites.enemies.gorilla.frames','graphics.sprites.enemies.gorilla.palette','graphics.sprites.world_objects.frames','audio.music.hakuna_matata.track','audio.music.hakuna_matata.death','graphics.sprites.simba.cub.hakuna_death_motion','gameplay.simba.roar','gameplay.levels.hakuna_matata.gorilla_recovery')),(6,'Play Simbas Destiny MD.cmd','destiny-md',('graphics.scenery.background','graphics.sprites.simba.adult.frames','graphics.sprites.simba.adult.palette','graphics.sprites.animals.monkeys.frames','graphics.sprites.world_objects.frames','graphics.hud.frames.lives','audio.music.simbas_destiny.track','audio.music.simbas_destiny.death'))]:'''+s[b:]
+s=s.replace("(256 if level==3 else 320)","320").replace("ROOT/'Play Stampede MD.cmd',ROOT/'Play Simbas Exile MD.cmd',ROOT/'profiles/stampede-md.ini',ROOT/'profiles/exile-md.ini'","ROOT/'Play Hakuna Matata MD.cmd',ROOT/'Play Simbas Destiny MD.cmd',ROOT/'profiles/hakuna-md.ini',ROOT/'profiles/destiny-md.ini'")
+exec(compile(s,str(template),'exec'))

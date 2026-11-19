@@ -1,0 +1,15 @@
+"""One installed Windows checkpoint view, reusing the proven owned-child capture."""
+from pathlib import Path
+template292=Path(__file__).with_name('verify_pride_caption282_installed_window.py')
+source=template292.read_text().replace('pride-caption282-window','pride-checkpoint292-window')
+source=source.replace('installed-preview277','installed-preview287').replace('pride-caption277-installed','pride-checkpoint287-installed')
+source=source.replace('pride-caption280-setup','pride-checkpoint290-setup').replace('pride-caption276-helper/tlk_prepare_caption_assets.exe','pride-checkpoint286-helper/tlk_prepare_checkpoint_assets.exe')
+source=source.replace("['caption_assets']","['checkpoint_assets']").replace('captions.assets','checkpoints.assets').replace('caption_assets=loaded','checkpoint_assets=loaded')
+source=source.replace("'caption.png'","'checkpoint.png'").replace("'1500'","'3600'").replace("ROOT/'build/pride-caption270-clamp/idle.polled.tape'","ROOT/'engine/tapes/allbugsF.read.tape'")
+source=source.replace("'schema = 1\\ngame = snes\\ndisplay.viewport = md\\n'","'schema = 1\\ngame = snes\\ndisplay.viewport = md\\ngraphics.sprites.checkpoints.frames = md\\ngraphics.sprites.checkpoints.palette = md\\n'")
+source=source.replace("before['field']>=1030","before['field']>=3260").replace("1030<=before['field']<=after['field']<1150","3260<=before['field']<=after['field']<3400")
+source=source.replace('time.monotonic()+70','time.monotonic()+100')
+source=source.replace('paths=[Path(__file__),package,','paths=[Path(__file__),template292,package,')
+source=source.replace('prepared_caption_load','prepared_checkpoint_load').replace('actual_caption_interval','actual_checkpoint_interval')
+source=source.replace('one own-child Windows opening caption','one own-child Windows checkpoint view')
+exec(compile(source,str(template292),'exec'))

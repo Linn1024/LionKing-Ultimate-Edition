@@ -1,0 +1,91 @@
+file: sdl_main.c
+
+@@ prime-genuine-pcm-before-device-resume
+<<<<
+static SDL_AudioStream *astream;
+====
+static SDL_AudioStream *astream;
+static int s_audio_playing;
+static void AudioDeviceReset(void) {
+    if(astream) {
+        SDL_PauseAudioStreamDevice(astream);
+        SDL_ClearAudioStream(astream);
+    }
+    s_audio_playing=0;
+}
+static void AudioDeviceQueue(const int16_t *pcm, int frames, int target) {
+    if(!SDL_PutAudioStreamData(astream,pcm,frames*4))return;
+    /* Use the existing ~50 ms target, filled with actual game samples.
+     * Opening, loading, pausing and turbo all start a new device queue. */
+    if(!s_audio_playing && SDL_GetAudioStreamQueued(astream)>=target*4) {
+        if(SDL_ResumeAudioStreamDevice(astream))s_audio_playing=1;
+    }
+}
+>>>>
+
+@@ enable-audio-leaves-device-paused
+<<<<
+        if (astream) SDL_ResumeAudioStreamDevice(astream);
+        else { fprintf(stderr, "audio: %s\n", SDL_GetError()); s_audio = 0; }
+====
+        if (astream) s_audio_playing=0;
+        else { fprintf(stderr, "audio: %s\n", SDL_GetError()); s_audio = 0; }
+>>>>
+
+@@ initial-audio-leaves-device-paused
+<<<<
+        else SDL_ResumeAudioStreamDevice(astream);
+====
+        else s_audio_playing=0;
+>>>>
+
+@@ pause-discards-stale-output-and-reprimes-on-return
+<<<<
+    s_menu_open = open;
+    s_key_wait = 0;
+====
+    s_menu_open = open;
+    if(open)AudioDeviceReset();
+    s_key_wait = 0;
+>>>>
+
+@@ live-load-pauses-cleared-device
+<<<<
+    if (astream) SDL_ClearAudioStream(astream);
+    return 1;
+====
+    AudioDeviceReset();
+    return 1;
+>>>>
+
+@@ scripted-load-pauses-cleared-device
+<<<<
+            if (astream) SDL_ClearAudioStream(astream);
+            if (s_practice) PrAfterLoad(0);
+====
+            AudioDeviceReset();
+            if (s_practice) PrAfterLoad(0);
+>>>>
+
+@@ turbo-discards-stale-output
+<<<<
+        /* Audio: one field's worth, trimmed to hold the device queue. */
+====
+        if(astream && (!pace || turbo!=1) &&
+           (s_audio_playing || SDL_GetAudioStreamQueued(astream)>0))AudioDeviceReset();
+        /* Audio: one field's worth, trimmed to hold the device queue. */
+>>>>
+
+@@ intentional-priming-is-not-an-underrun
+<<<<
+                if (queued == 0 && frame > 10 && pace && turbo == 1) underruns++;
+====
+                if (s_audio_playing && queued == 0 && frame > 10 && pace && turbo == 1) underruns++;
+>>>>
+
+@@ enqueue-before-starting-device
+<<<<
+                if (astream && pace && turbo == 1) SDL_PutAudioStreamData(astream, abuf, c * 4);
+====
+                if (astream && pace && turbo == 1) AudioDeviceQueue(abuf,c,audio_target);
+>>>>

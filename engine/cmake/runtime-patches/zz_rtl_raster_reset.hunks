@@ -1,0 +1,13 @@
+# Alternating field and late-NMI phase live outside the Snes allocation.
+file: runner/src/common_rtl.c
+
+@@ clear-new-machine-field-phase
+<<<<
+  g_interp_apu_driving = 0;
+====
+  g_interp_apu_driving = 0;
+  extern void tlk_snes_short_field_set(int);
+  extern void tlk_snes_late_nmi_set(int);
+  tlk_snes_short_field_set(0);
+  tlk_snes_late_nmi_set(0);
+>>>>

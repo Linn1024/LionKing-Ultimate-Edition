@@ -1,0 +1,35 @@
+file: sdl_main.c
+
+@@ include-hud-package-reader
+<<<<
+#include "tlk_resources.h"
+====
+#include "tlk_resources.h"
+#include "tlk_md_hud_assets.h"
+>>>>
+
+@@ keep-hud-package-path-local-to-startup
+<<<<
+    const char *asset_cache=NULL,*prepare_resources=NULL;
+====
+    const char *asset_cache=NULL,*prepare_resources=NULL,*hud_asset_path=NULL;
+>>>>
+
+@@ accept-hud-package-argument
+<<<<
+        else if (!strcmp(a, "--asset-cache") && v) { asset_cache=v;i++; }
+====
+        else if (!strcmp(a, "--asset-cache") && v) { asset_cache=v;i++; }
+        else if (!strcmp(a, "--hud-assets") && v) { hud_asset_path=v;i++; }
+>>>>
+
+@@ require-prepared-hud-before-installed-resource-initialization
+<<<<
+    TlkResourcesSetCachePath(prepare_resources?prepare_resources:asset_cache,prepare_resources!=NULL);
+====
+    if (!prepare_resources && (asset_cache || hud_asset_path) && !TlkMdHudAssetsReadFile(hud_asset_path)) {
+        fprintf(stderr,"Installed HUD data is missing or incompatible. Run Setup again.\n");
+        free(rom);return 8;
+    }
+    TlkResourcesSetCachePath(prepare_resources?prepare_resources:asset_cache,prepare_resources!=NULL);
+>>>>

@@ -1,0 +1,22 @@
+"""Locate corresponding native/MD bat animation groups for reviewed action-phase art."""
+import json,csv
+from pathlib import Path
+from audit_scenes import ROOT
+from build_pride_compiled_hooks import digest
+out=ROOT/'build/later876-bats';out.mkdir(exist_ok=True);groups={}
+for name,file,romname,desc,endian in [('snes','build/later872-route/poses.csv','Lion King, The (USA).sfc','c58ecc','little'),('md','build/later873-reference/poses.csv','Lion King, The (World).md','13ff84','big')]:
+ rows=[r for r in csv.DictReader((ROOT/file).open()) if r['descriptor']==desc and r['level']=='7'];poses={int(r['pose'],16) for r in rows};rom=(ROOT/romname).read_bytes();tokens={}
+ for pose in poses:
+  start=0
+  while (p:=rom.find(pose.to_bytes(3,endian),start))>=0:
+   start=p+1
+   if p and 0<rom[p-1]<128:tokens[p-1]=(rom[p-1],pose)
+ result=[]
+ for p in sorted(q for q in tokens if q-4 not in tokens):
+  seq=[];q=p
+  while q in tokens:duration,pose=tokens[q];seq.append(dict(duration=duration,pose=hex(pose)));q+=4
+  if len(seq)>=2:result.append(dict(address=hex(p),frames=seq))
+ groups[name]=result
+ for r in result:print(name,r['address'],' '.join(f"{x['pose']}:{x['duration']}" for x in r['frames']),flush=True)
+paths=[Path(__file__),ROOT/'build/later875-actors/report.json']
+(out/'report.json').write_text(json.dumps(dict(result='OBSERVED',groups=groups,source_sha256={p.relative_to(ROOT).as_posix():digest(p) for p in paths}),indent=2)+'\n')

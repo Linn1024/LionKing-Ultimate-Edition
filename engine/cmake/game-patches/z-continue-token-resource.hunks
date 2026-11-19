@@ -1,0 +1,23 @@
+file: runner/tlk_resources.c
+
+@@ append-reviewed-continue-token-artwork-after-final-gameplay-nodes
+<<<<
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    {"graphics.sprites.pickups.continue_token", "Continue token", 13, 0, 0, 0, ""},
+    {"graphics.sprites.pickups.continue_token.frames", "Frame artwork", 125, 1, 0, 1, "Pride Lands world Continue token: four original MD sun images; animation timing, palette and pickup cue have separate choices; native reward behavior retained"},
+    {"graphics.sprites.pickups.continue_token.palette", "Palette", 125, 1, 0, 1, "Pride Lands world Continue token: original MD palette0, independent of Simba, HUD and other pickups; native flashes preserved"},
+#endif
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+>>>>
+
+@@ compose-when-only-continue-token-artwork-is-selected
+<<<<
+           TlkResourcesUseMd("graphics.sprites.pickups.frames") || TlkResourcesUseMd("graphics.sprites.pickups.palette") ||
+====
+           TlkResourcesUseMd("graphics.sprites.pickups.frames") || TlkResourcesUseMd("graphics.sprites.pickups.palette") ||
+           TlkResourcesUseMd("graphics.sprites.pickups.continue_token.frames") || TlkResourcesUseMd("graphics.sprites.pickups.continue_token.palette") ||
+>>>>

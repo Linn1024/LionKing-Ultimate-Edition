@@ -1,0 +1,19 @@
+--- a/recompiler/v2/emit_function.py
++++ b/recompiler/v2/emit_function.py
+@@ -758,6 +758,9 @@
+             f"  g_last_recomp_func = \"{variant_name}\";",
+             f"  RecompStackPush(\"{variant_name}\");",
++            "  CpuTailcallContextSave _hle_tail;",
++            "  cpu_tailcall_context_save(&_hle_tail);",
+             "  cpu_take_tailcall_return_context(NULL, NULL);",
++            "  cpu_tailcall_context_restore(&_hle_tail);",
+             f"  cpu_dbg_funcname(\"{variant_name}\");",
+             f"  cpu_trace_func_entry(cpu, 0x{pc24:06X}, \"{variant_name}\");",
+             f"  cpu_trace_block(cpu, 0x{pc24:06X});",
+@@ -766,5 +769,6 @@
+             "  WatchdogCheck();",
+             f"  RecompReturn _r = {c_helper}(cpu);",
++            "  cpu_take_tailcall_return_context(NULL, NULL);",
+             "  RecompStackPop();",
+             "  return _r;",
+             "}",

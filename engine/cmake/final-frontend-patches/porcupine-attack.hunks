@@ -1,0 +1,42 @@
+file: sdl_main.c
+
+@@ independent-porcupine-attack-wrapper
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_porcupine_attack_runtime.h"
+static void PorcupineAttackPoint(CpuState *cpu,uint32_t pc) {
+    TlkAudioPorcupineAttackVoice(cpu,pc);
+    uint32_t next=TlkPorcupineAttackOpcode(cpu,pc);
+    if(next)interp_bridge_pre_opcode_redirect(next);
+}
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-porcupine-boundaries-for-both-execution-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc15c64,PorcupineAttackPoint);
+        interp_bridge_add_pre_opcode_hook(0xc15d00,PorcupineAttackPoint);
+        interp_bridge_add_pre_opcode_hook(0xc15c8f,PorcupineAttackPoint);
+        interp_bridge_add_pre_opcode_hook(0xc15d14,PorcupineAttackPoint);
+        interp_bridge_add_pre_opcode_hook(0xc15cb2,PorcupineAttackPoint);
+        RtlRunFrame(pad);
+>>>>
+
+@@ initialize-porcupine-source
+<<<<
+    TlkLayoutProfileChanged();
+====
+    TlkLayoutProfileChanged();
+    TlkPorcupineAttackProfileChanged();
+>>>>
+
+@@ restart-for-porcupine-source-change
+<<<<
+    restart|=TlkLayoutProfileChanged();
+====
+    restart|=TlkLayoutProfileChanged();
+    restart|=TlkPorcupineAttackProfileChanged();
+>>>>

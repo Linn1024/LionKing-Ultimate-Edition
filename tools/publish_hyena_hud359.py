@@ -1,0 +1,16 @@
+"""Publish the reproduced Mixed Graphics hyena HUD flicker fix."""
+from pathlib import Path
+template359=Path(__file__).with_name('publish_pride_porcupine331.py')
+source=template359.read_text()
+source=source.replace("build=ROOT/'build/pride-porcupine327/build-report.json'","build=ROOT/'build/hyena-hud356/build-report.json'")
+source=source.replace('pride-porcupine329-baseline','hyena-hud358').replace('pride-porcupine330-window','hyena-hud358')
+source=source.replace("previous=ROOT/'dist/installed-preview319'","previous=ROOT/'dist/installed-preview349'")
+source=source.replace("out=ROOT/'dist/installed-preview327'","out=ROOT/'dist/installed-preview356'")
+source=source.replace("info['pride_porcupine_voice_scope']='Selected MD FM105 at original counter28 seam under either attack-contact timing source; native sound follows selected gameplay cue. Existing native cue interception retained; no new guest writes or save state.'","info['hyena_hud_ownership_scope']='Keep recorded object/HUD positions when an empty draw pass reuploads exactly the currently displayed OAM. Changed/cleared uploads still replace ownership. Fixes intermittent narrow HUD in Mixed Graphics hyena encounter; no gameplay or save schema changes.'")
+source=source.replace(".replace('preview319','preview327')",".replace('preview349','preview356')")
+source=source.replace('Selected MD porcupine attack sound now uses original counter28 timing,\\nindependently of attack contact timing. Installed assets/settings are retained.','Mixed Graphics HUD keeps its wide layout through the hyena opening,\\nincluding repeated sprite uploads. Installed assets/settings are retained.')
+source=source.replace("before.count('dist/installed-preview319')","before.count('dist/installed-preview349')")
+source=source.replace("before.replace('dist/installed-preview319','dist/installed-preview327')","before.replace('dist/installed-preview349','dist/installed-preview356')")
+source=source.replace('pride-porcupine331-publication','hyena-hud359-publication').replace('pride-porcupine326-baseline','hyena-hud355-baseline')
+source=source.replace('paths=[Path(__file__),build,','paths=[Path(__file__),template359,build,')
+exec(compile(source,str(template359),'exec'))

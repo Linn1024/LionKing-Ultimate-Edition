@@ -1,0 +1,13 @@
+file: runner/sdl_main.c
+
+@@ synchronize-practice-after-cli-load
+<<<<
+    if (s_practice) PrEnable();
+    /* --frames runs are scripted proof runs: they must not clobber a player's recording. */
+====
+    if (s_practice) {
+        PrEnable();
+        if (load_path) PrAfterLoad(0);
+    }
+    /* --frames runs are scripted proof runs: they must not clobber a player's recording. */
+>>>>

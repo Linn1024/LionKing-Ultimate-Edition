@@ -1,0 +1,26 @@
+file: sdl_main.c
+
+@@ hyena-entrance-window-declaration
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_hyena_entrance.h"
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-hyena-entrance-window-both-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        TlkHyenaEntrancePrepareSource();
+        interp_bridge_add_pre_opcode_hook(0xc03bdb,TlkHyenaEntranceWindow);
+        RtlRunFrame(pad);
+>>>>
+
+@@ restart-after-hyena-entrance-window-source-change
+<<<<
+    restart|=TlkLayoutProfileChanged();
+====
+    restart|=TlkLayoutProfileChanged();
+    restart|=TlkHyenaEntranceProfileChanged();
+>>>>

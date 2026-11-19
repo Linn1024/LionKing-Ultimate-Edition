@@ -1,0 +1,26 @@
+# Stage the game-owned reset integration in an audited build copy. Existing
+# production source/binaries remain available for before/after comparisons.
+file: runner/tlk_game.c
+
+@@ reset-header
+<<<<
+#include "tlk_audio.h"
+====
+#include "tlk_audio.h"
+#include "tlk_reset.h"
+>>>>
+
+@@ reset-after-machine-initialize
+<<<<
+static void TlkInitialize(void) { TlkDecompInstall(); TlkAudioInstall(); aot_pace_diag_init(); }
+====
+static void TlkInitialize(void) { TlkDecompInstall(); TlkAudioInstall(); aot_pace_diag_init(); TlkResetMachine(); }
+>>>>
+
+@@ reset-hardware-hook
+<<<<
+    .session_reset    = &TlkSessionReset,
+====
+    .session_reset    = &TlkSessionReset,
+    .hardware_reset   = &TlkResetMachine,
+>>>>

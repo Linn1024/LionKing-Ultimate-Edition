@@ -1,0 +1,64 @@
+--- a/recompiler/v2/emit_function.py
++++ b/recompiler/v2/emit_function.py
+@@ -20,6 +20,15 @@
+ import os
+ import sys
+ import pathlib
++import json
++
++# Project-owned optional pre-op bridge. Empty by default, preserving the native
++# emitter. Callers must use a fresh output tree when changing this manifest.
++_pride_values = json.loads(os.environ.get("TLK_COMPILED_HOOK_POINTS", "[]"))
++PRIDE_POINTS = {int(v, 0) if isinstance(v, str) else v for v in _pride_values}
++if any(type(v) is not int or v < 0 or v > 0xffffff for v in PRIDE_POINTS):
++    raise ValueError("invalid project compiled hook point")
++PRIDE_EMITTED = {}
+ 
+ _THIS_DIR = pathlib.Path(__file__).resolve().parent
+ _RECOMPILER_DIR = _THIS_DIR.parent
+@@ -663,6 +672,7 @@
+             emit_op(op)  → C lines
+         block-end op → goto / fall-through wiring
+     """
++    _pride_labels = set()
+     base_func_name = func_name if func_name is not None else _default_func_name(bank, start)
+     # HLE bypass: if cfg declared this function's PC as the SPC upload
+     # entry (`hle_spc_upload <pc>` in the bank cfg), replace the entire
+@@ -1668,6 +1678,21 @@
+                   f'skip_emit_idx={sorted(skip_emit_idx)}',
+                   file=_sys.stderr, flush=True)
+         for ii, (di_insn, ir_ops) in enumerate(pairs):
++            _pride_pc = getattr(di_insn, 'addr', 0) & 0xffffff
++            if _pride_pc in PRIDE_POINTS:
++                if ii in skip_emit_idx:
++                    raise RuntimeError(('hook intersects synthesized instruction',func_name,hex(_pride_pc)))
++                _pride_key = (_pride_pc, int(di_insn.m_flag), int(di_insn.x_flag))
++                if _pride_key in _pride_labels:
++                    raise RuntimeError(('duplicate hook label',func_name,_pride_key))
++                _pride_labels.add(_pride_key)
++                lines.append('PRIDE_PC_%06X_M%dX%d:;' % _pride_key)
++                lines.append('{ uint32_t _pride_target=PrideSceneCompiledPreOpcode(cpu,0x%06Xu);' % _pride_pc)
++                lines.append('if(_pride_target&0x80000000u) { RecompReturn _r=(RecompReturn)(_pride_target&0x7fffffffu); cpu_trace_event(cpu,0,CPU_TR_NLR_PROPAGATE,(uint8)_r,0); cpu_trace_mark_nlr_exit(BD_EXIT_KIND_SKIP_PROPAGATION); RecompStackPop(); return (RecompReturn)((int)_r-1); }')
++                lines.append('if(_pride_target) { switch((_pride_target&0xffffffu)|((cpu->m_flag&1u)<<24)|((cpu->x_flag&1u)<<25)) {')
++                lines.append('PRIDE_COMPILED_REDIRECT_CASES')
++                lines.append('default: PrideSceneCompiledUnmapped(cpu,0x%06Xu,_pride_target); } } }' % _pride_pc)
++
+             # NLR: inject _pending_skip setter + diagnostics RIGHT BEFORE
+             # the terminator insn. This ensures any preceding setup ops
+             # have already emitted, and the upcoming Goto/Return picks up
+@@ -2487,7 +2512,14 @@
+     src.append("  RecompStackPop();")
+     src.append("  return RECOMP_RETURN_NORMAL;")
+     src.append("}")
+-    return "\n".join(src) + "\n"
++    _pride_result = "\n".join(src) + "\n"
++    if _pride_labels:
++        _pride_cases = []
++        for _pc,_m,_x in sorted(_pride_labels):
++            _pride_cases.append('case 0x%08Xu: goto PRIDE_PC_%06X_M%dX%d;' % (_pc|(_m<<24)|(_x<<25),_pc,_m,_x))
++        _pride_result = '#include "pride_scene_compiled_hooks_api.h"\n' + _pride_result.replace('PRIDE_COMPILED_REDIRECT_CASES','\n'.join(_pride_cases))
++        PRIDE_EMITTED[func_name] = [list(k) for k in sorted(_pride_labels)]
++    return _pride_result
+ 
+ 
+ def _reg_for_flag(flag) -> str:

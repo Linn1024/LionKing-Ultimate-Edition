@@ -1,0 +1,13 @@
+file: runner/tlk_resources.c
+
+@@ append-independent-checkpoint-animation-source
+<<<<
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    {"gameplay.levels.pride_lands.checkpoint_animation", "Checkpoint animation", 34, 1, 1, 1, "Pride Lands collected checkpoint: MD repeating blink sequence (6/21/6 updates); native game update scheduling retained. Artwork, palette, sound and checkpoint coordinates are independent. Changing this source restarts the level."},
+#endif
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+>>>>

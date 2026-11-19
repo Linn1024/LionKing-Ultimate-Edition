@@ -1,0 +1,36 @@
+file: runner/tlk_resources.c
+
+@@ title-group-parent-after-standalone-injected-nodes
+<<<<
+    {"graphics.titles.pride_lands", "The Pridelands", 112,
+====
+    {"graphics.titles.pride_lands", "The Pridelands", 114,
+>>>>
+
+@@ title-art-parent-after-standalone-injected-nodes
+<<<<
+    {"graphics.titles.pride_lands.frames", "Caption artwork", 113,
+====
+    {"graphics.titles.pride_lands.frames", "Caption artwork", 115,
+>>>>
+
+@@ title-palette-parent-after-standalone-injected-nodes
+<<<<
+    {"graphics.titles.pride_lands.palette", "Palette", 113,
+====
+    {"graphics.titles.pride_lands.palette", "Palette", 115,
+>>>>
+
+@@ title-position-parent-after-standalone-injected-nodes
+<<<<
+    {"graphics.titles.pride_lands.position", "Caption position", 113,
+====
+    {"graphics.titles.pride_lands.position", "Caption position", 115,
+>>>>
+
+@@ title-duration-parent-after-standalone-injected-nodes
+<<<<
+    {"graphics.titles.pride_lands.duration", "Caption duration", 113,
+====
+    {"graphics.titles.pride_lands.duration", "Caption duration", 115,
+>>>>

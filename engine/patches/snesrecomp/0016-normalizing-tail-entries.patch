@@ -1,0 +1,68 @@
+--- a/recompiler/v2/emit_function.py
++++ b/recompiler/v2/emit_function.py
+@@ -22,6 +22,7 @@
+ import pathlib
+ import json
+ from .project_continuations import emit_continuations
++from .project_tail_entries import emit_tail_entries
+ 
+ # Project-owned optional pre-op bridge. Empty by default, preserving the native
+ # emitter. Callers must use a fresh output tree when changing this manifest.
+@@ -37,6 +38,7 @@
+         if type(_pc) is not int or not 0 <= _pc <= 0xffffff or _m not in (0,1) or _x not in (0,1):
+             raise ValueError("invalid native continuation")
+         PRIDE_POINTS.add(_pc)
++PRIDE_TAIL_ENTRIES = json.loads(os.environ.get("TLK_COMPILED_TAIL_ENTRIES", "{}"))
+ PRIDE_EMITTED = {}
+ 
+ _THIS_DIR = pathlib.Path(__file__).resolve().parent
+@@ -2531,6 +2533,9 @@
+         PRIDE_EMITTED[func_name] = [list(k) for k in sorted(_pride_labels)]
+     if _pride_labels:
+         _pride_result = 'extern uint32_t interp_bridge_compiled_pre_opcode(CpuState *,uint32_t);\n' + emit_continuations(_pride_result,_pride_labels,PRIDE_CONTINUATIONS)
++    if _pride_labels and PRIDE_TAIL_ENTRIES:
++        from snes65816 import rom_offset as _tail_rom_offset
++        _pride_result = emit_tail_entries(_pride_result,PRIDE_TAIL_ENTRIES,rom,_tail_rom_offset)
+     return _pride_result
+ 
+ 
+--- /dev/null
++++ b/recompiler/v2/project_tail_entries.py
+@@ -0,0 +1,37 @@
++"""Optional compiled tail entries whose first instruction normalizes CPU width.
++
++A REP/SEP immediate executes independently of incoming register width. A body
++decoded for one entry width can therefore accept another only when that first
++instruction makes both states identical before the next instruction. Validate
++that premise against source bytes, then use the emitter's normal tail-call
++return-context protocol. No guest instructions or return frames are fabricated.
++"""
++import re
++
++
++def emit_tail_entries(source, entries, rom, rom_offset):
++    if not entries:
++        return source
++    declarations = []
++    cases = []
++    for name, points in sorted(entries.items()):
++        match = re.fullmatch(r'\w+_M([01])X([01])', name)
++        if not match:
++            raise ValueError(('invalid compiled target', name))
++        base_m, base_x = map(int, match.groups())
++        declarations.append('RecompReturn %s(CpuState *);' % name)
++        for pc, m, x in points:
++            if type(pc) is not int or not 0 <= pc <= 0xffffff or m not in (0, 1) or x not in (0, 1):
++                raise ValueError(('invalid tail entry', name, pc, m, x))
++            offset = rom_offset(pc >> 16, pc & 65535)
++            opcode, mask = rom[offset:offset + 2]
++            difference = ((base_m ^ m) << 5) | ((base_x ^ x) << 4)
++            if opcode not in (0xc2, 0xe2) or not difference or difference & ~mask:
++                raise ValueError(('entry does not normalize the differing width', name, pc))
++            cases.append('case 0x%08Xu: { cpu->host_return_valid=_hrv; '
++                         'cpu_tailcall_inherit_return_context(_entry_s,_hrv); '
++                         'RecompReturn _tc=%s(cpu); RecompStackPop(); return _tc; }' %
++                         (pc | (m << 24) | (x << 25), name))
++    return '\n'.join(declarations) + '\n' + source.replace(
++        'default: PrideSceneCompiledUnmapped(',
++        '\n'.join(cases) + '\ndefault: PrideSceneCompiledUnmapped(')

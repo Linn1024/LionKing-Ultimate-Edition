@@ -1,0 +1,15 @@
+"""Completed mixed route with independently selected entrance geometry."""
+from pathlib import Path
+verifier_source=Path(__file__).with_name('verify_pride_hyena_probe99_routes.py')
+source=verifier_source.read_text()
+source=source.replace("ROOT/'build/pride-hyena-probe97'","ROOT/'build/pride-hyena-entrance139'")
+source=source.replace("ROOT/'build/pride-menu-enable86/route/report.json'","ROOT/'build/pride-resource-tree118/routes99/report.json'")
+source=source.replace("out=base/'routes99'","out=base/'routes148'")
+source=source.replace("prior['commands']['menus-aot']","prior['commands']['probe-aot']")
+source=source.replace("reference.parent/'menus-aot'","reference.parent/'probe-aot'")
+source=source.replace('gameplay.levels.pride_lands.hyena_probe_height','gameplay.levels.pride_lands.hyena_entrance_window')
+source=source.replace('TLK_HYENA_PROBE_TRACE','TLK_HYENA_ENTRANCE_TRACE')
+source=source.replace("int(r['selected_query_y'])==(int(r['native_query_y'])-8)&65535","int(r['selected_operand'])==int(r['camera_x'])+64")
+source=source.replace('-DTLK_HYENA_PROBE_AVAILABLE=1','-DTLK_HYENA_ENTRANCE_AVAILABLE=1')
+source=source.replace('paths=[Path(__file__),','paths=[Path(__file__),verifier_source,')
+exec(compile(source,str(verifier_source),'exec'))

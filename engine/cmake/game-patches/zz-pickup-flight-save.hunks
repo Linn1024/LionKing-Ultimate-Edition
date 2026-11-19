@@ -1,0 +1,36 @@
+file: runner/tlk_savestate.c
+
+@@ bind-independent-flight-source-in-unused-width-high-bit
+<<<<
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.random_entry")) flags|=0x40000000u;
+====
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.random_entry")) flags|=0x40000000u;
+    /* Viewports are bounded far below32768. Reserve the old width high bit
+     * for flight motion; keep version4 and every payload offset unchanged. */
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.pickup_flight")) flags|=0x00800000u;
+>>>>
+
+@@ bind-flight-viewport-even-with-native-camera
+<<<<
+    if (flags&1) flags|=((uint32_t)TlkCameraViewWidth()&65535u)<<8;
+====
+    if (flags&(1u|0x00800000u)) flags|=((uint32_t)TlkCameraViewWidth()&32767u)<<8;
+>>>>
+
+@@ reject-legacy-unknown-flight-source
+<<<<
+    if (ok && h.version==1u && h.host_frame && (current&0x7f0000ffu)) {
+====
+    if (ok && h.version==1u && h.host_frame && (current&0x7f8000ffu)) {
+>>>>
+
+@@ reject-incompatible-flight-or-viewport-before-guest-load
+<<<<
+        } else if ((sources^current)&0x00ffff00u) {
+            snprintf(load_error,sizeof load_error,"State needs a %u-pixel camera viewport",(unsigned)((sources>>8)&65535u));ok=0;
+====
+        } else if ((sources^current)&0x00800000u) {
+            snprintf(load_error,sizeof load_error,"State pickup-flight source differs; match it in F12");ok=0;
+        } else if ((sources^current)&0x007fff00u) {
+            snprintf(load_error,sizeof load_error,"State needs a %u-pixel gameplay viewport",(unsigned)((sources>>8)&32767u));ok=0;
+>>>>

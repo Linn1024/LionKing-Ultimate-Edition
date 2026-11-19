@@ -1,0 +1,57 @@
+file: runner/tlk_resources.c
+
+@@ rng-entry-capability-and-runtime
+<<<<
+#include "native_adapters.h"
+====
+#include "native_adapters.h"
+#include "tlk_rng_runtime.h"
+#ifndef TLK_RNG_ENTRY_AOT_AVAILABLE
+#define TLK_RNG_ENTRY_AOT_AVAILABLE 0
+#endif
+#ifdef TLK_RNG_ENTRY_STAGED_AVAILABLE
+#undef TLK_RNG_ENTRY_AOT_AVAILABLE
+#define TLK_RNG_ENTRY_AOT_AVAILABLE 1
+#endif
+>>>>
+
+@@ append-independent-normal-entry-seed
+<<<<
+    {"gameplay.levels.pride_lands.health_death", "Health death and revival", 34, 1, 1, TLK_PRIDE_DEATH_AOT_AVAILABLE, "Pride Lands nonfinal cub health death: reviewed MD display/revival timing, checkpoint and default reloads; artwork and audio remain independent. Final-life, fall-death and other scenes retain native behavior. Changing this source restarts the level"},
+====
+    {"gameplay.levels.pride_lands.health_death", "Health death and revival", 34, 1, 1, TLK_PRIDE_DEATH_AOT_AVAILABLE, "Pride Lands nonfinal cub health death: reviewed MD display/revival timing, checkpoint and default reloads; artwork and audio remain independent. Final-life, fall-death and other scenes retain native behavior. Changing this source restarts the level"},
+    {"gameplay.levels.pride_lands.random_entry", "Random seed on entry", 34, 1, 1, TLK_RNG_ENTRY_AOT_AVAILABLE, "Pride Lands normal entry and Continue use the original MD scene seed. Death revival keeps its current sequence; other scenes keep native rules. Random call order and full enemy behavior remain separate. Changing this source restarts the level"},
+>>>>
+
+@@ clear-entry-data-on-resource-init
+<<<<
+    TlkStartDataClear();
+====
+    TlkStartDataClear();
+#if TLK_RNG_ENTRY_AOT_AVAILABLE
+    TlkRngRuntimeClear();
+#endif
+>>>>
+
+@@ initialize-verified-entry-operands
+<<<<
+        TlkStartDataInit(snes,snes_size,rom,0x300000);
+====
+        TlkStartDataInit(snes,snes_size,rom,0x300000);
+#if TLK_RNG_ENTRY_AOT_AVAILABLE
+        TlkRngRuntimeInit(snes,snes_size,rom,0x300000);
+#endif
+>>>>
+
+@@ validate-entry-data-before-applying-source
+<<<<
+        if (!strcmp(nodes[i].id,"gameplay.levels.pride_lands.start")) {
+====
+#if TLK_RNG_ENTRY_AOT_AVAILABLE
+        if (!strcmp(nodes[i].id,"gameplay.levels.pride_lands.random_entry") && !TlkRngRuntimeReady()) {
+            if (!blocked && reason && size) snprintf(reason,size,"%s: verified scene seed unavailable",nodes[i].id);
+            blocked++;continue;
+        }
+#endif
+        if (!strcmp(nodes[i].id,"gameplay.levels.pride_lands.start")) {
+>>>>

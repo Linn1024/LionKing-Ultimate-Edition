@@ -1,0 +1,29 @@
+file: sdl_main.c
+
+@@ hyena-walking-probe-declaration
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_hyena_probe.h"
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-hyena-walking-probe-both-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        TlkHyenaProbePrepareSource();
+        interp_bridge_add_pre_opcode_hook(0xc0c5fe,TlkHyenaWalkingProbe);
+        interp_bridge_add_pre_opcode_hook(0xc0c6e3,TlkHyenaWalkingProbe);
+        interp_bridge_add_pre_opcode_hook(0x00c5fe,TlkHyenaWalkingProbe);
+        interp_bridge_add_pre_opcode_hook(0x00c6e3,TlkHyenaWalkingProbe);
+        RtlRunFrame(pad);
+>>>>
+
+@@ restart-after-hyena-walking-probe-source-change
+<<<<
+    restart|=TlkLayoutProfileChanged();
+====
+    restart|=TlkLayoutProfileChanged();
+    restart|=TlkHyenaProbeProfileChanged();
+>>>>

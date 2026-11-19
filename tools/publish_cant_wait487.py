@@ -1,0 +1,11 @@
+"""Publish qualified level-two tail colors and shared HUD, reusing installed assets."""
+from pathlib import Path
+template=Path(__file__).with_name('publish_pride402.py')
+s=template.read_text().replace('build/pride398/build-report.json','build/cant-wait482/build-report.json').replace('build/pride401-ui/report.json','build/cant-wait480-ui/report.json')
+s=s.replace("previous=ROOT/'dist/installed-preview390';out=ROOT/'dist/installed-preview398'", "previous=ROOT/'dist/installed-preview460';out=ROOT/'dist/installed-preview482'")
+s=s.replace('build/pride402-publication','build/cant-wait487-publication').replace("before.count('dist/installed-preview390')","before.count('dist/installed-preview460')").replace("before.replace('dist/installed-preview390','dist/installed-preview398')","before.replace('dist/installed-preview460','dist/installed-preview482')")
+s=s.replace("info['available_md_preset_scope']='Resource editor MD/F7 drafts every currently available MD choice with inherited branches, explicit SNES overrides for unavailable leaves, individual overrides and ordinary Apply/restart. Existing settings/data unchanged until user applies.'", "info['cant_wait_tail_hud_scope']='Independent live rhino tail palette on 11 verified shared poses; shared roar/health/lives HUD artwork enabled in the owned second-level scene. Existing installation resources, gameplay and audio unchanged. Full direct-selected level walkthrough reaches Elephant Graveyard.'")
+s=s.replace('Preview398: Resources > MD (or F7 in the SDL editor) drafts all available MD\\nchoices. Unsupported choices remain SNES. Edit individual nodes, then Apply.', 'Preview482: Rhinos > Tail > Palette and Meters and lives work live in level two.\\nSecond-level walkthrough reaches Elephant Graveyard; native gameplay/effects retained.')
+s=s.replace("previous=ROOT/'dist/installed-preview460'", "proofs=[ROOT/'build'/name/'report.json' for name in ('cant-wait477-tail-qualified','cant-wait483-hud','cant-wait485-route')]\nfor p in proofs:assert bound(p)['result']=='PASS'\nprevious=ROOT/'dist/installed-preview460'")
+s=s.replace('paths=[Path(__file__),build,proof,launcher]', 'paths=[Path(__file__),template,build,proof,*proofs,launcher]')
+exec(compile(s,str(template),'exec'))

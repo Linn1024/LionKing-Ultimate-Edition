@@ -1,0 +1,14 @@
+file: runner/tlk_md_hud.c
+
+@@ accept-owned-prepared-hud-payload-without-a-rom
+<<<<
+int TlkMdHudReady(void) { return ready; }
+====
+int TlkMdHudInitPrepared(const uint8_t *payload,size_t size) {
+    if (!payload || size!=sizeof data) return 0;
+    memcpy(data,payload,sizeof data);ready=1;
+    for (unsigned i=0;i<5;i++) last[i]=-100;
+    return 1;
+}
+int TlkMdHudReady(void) { return ready; }
+>>>>

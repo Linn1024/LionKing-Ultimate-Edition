@@ -1,0 +1,18 @@
+# Observe original native program allocation without guest writes.
+file: runner/src/snes/spc.c
+
+@@ native-owner-spc-api
+<<<<
+#include "apu.h"
+====
+#include "apu.h"
+#include "tlk_native_audio_owner.h"
+>>>>
+
+@@ native-owner-original-spc-instruction
+<<<<
+  uint8_t opcode = spc_readOpcode(spc);
+====
+  TlkNativeAudioOwnerSpc(spc->pc,spc->a,spc->x,spc->y,spc->apu->ram);
+  uint8_t opcode = spc_readOpcode(spc);
+>>>>

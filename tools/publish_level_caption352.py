@@ -1,0 +1,16 @@
+"""Package per-line caption centring while preserving installed assets/settings."""
+from pathlib import Path
+template352=Path(__file__).with_name('publish_pride_porcupine331.py')
+source=template352.read_text()
+source=source.replace("build=ROOT/'build/pride-porcupine327/build-report.json'","build=ROOT/'build/level-caption349/build-report.json'")
+source=source.replace('pride-porcupine329-baseline','level-caption351').replace('pride-porcupine330-window','level-caption351')
+source=source.replace("previous=ROOT/'dist/installed-preview319'","previous=ROOT/'dist/installed-preview327'")
+source=source.replace("out=ROOT/'dist/installed-preview327'","out=ROOT/'dist/installed-preview349'")
+source=source.replace("info['pride_porcupine_voice_scope']='Selected MD FM105 at original counter28 seam under either attack-contact timing source; native sound follows selected gameplay cue. Existing native cue interception retained; no new guest writes or save state.'","info['caption_centering']='Pride independent artwork remains viewport-centred; matching falling-font openings in later main levels centre each line separately, retaining native glyphs and vertical animation. MD artwork for those other strings remains unavailable.'")
+source=source.replace(".replace('preview319','preview327')",".replace('preview327','preview349')")
+source=source.replace('Selected MD porcupine attack sound now uses original counter28 timing,\\nindependently of attack contact timing. Installed assets/settings are retained.','Multi-line opening titles are centred per line, including falling letters.\\nOriginal glyph artwork and vertical animation are retained.')
+source=source.replace("before.count('dist/installed-preview319')","before.count('dist/installed-preview327')")
+source=source.replace("before.replace('dist/installed-preview319','dist/installed-preview327')","before.replace('dist/installed-preview327','dist/installed-preview349')")
+source=source.replace('pride-porcupine331-publication','level-caption352-publication').replace('pride-porcupine326-baseline','level-caption342-baseline')
+source=source.replace('paths=[Path(__file__),build,','paths=[Path(__file__),template352,build,')
+exec(compile(source,str(template352),'exec'))

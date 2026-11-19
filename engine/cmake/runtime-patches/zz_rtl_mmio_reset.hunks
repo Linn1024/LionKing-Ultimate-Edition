@@ -1,0 +1,13 @@
+# Timing shadows belong to the machine, including when reusing the host.
+file: runner/src/common_rtl.c
+
+@@ clear-new-machine-mmio-shadows
+<<<<
+  tlk_bridge_reset_apu_timing();
+====
+  tlk_bridge_reset_apu_timing();
+  g_memsel = 0;
+  g_snesrecomp_last_hdmaen = 0;
+  extern int g_interp_apu_driving;
+  g_interp_apu_driving = 0;
+>>>>

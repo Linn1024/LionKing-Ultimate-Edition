@@ -1,0 +1,25 @@
+file: sdl_main.c
+
+@@ graveyard-gameplay-declaration
+<<<<
+#include "tlk_hyena_probe.h"
+====
+#include "tlk_hyena_probe.h"
+#include "tlk_graveyard_gameplay.h"
+>>>>
+
+@@ graveyard-gameplay-install
+<<<<
+        TlkHyenaProbePrepareSource();
+====
+        TlkHyenaProbePrepareSource();
+        TlkGraveyardGameplayPrepareSource();
+>>>>
+
+@@ graveyard-gameplay-restart
+<<<<
+    restart|=TlkHyenaProbeProfileChanged();
+====
+    restart|=TlkHyenaProbeProfileChanged();
+    restart|=TlkGraveyardGameplayProfileChanged();
+>>>>

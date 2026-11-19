@@ -1,0 +1,10 @@
+file: runner/tlk_resource_editor_selftest.h
+
+@@ allow-sdl-to-release-the-previous-guide-press
+<<<<
+    CloseMenu();StTap(SDLK_F12);
+====
+    /* SDL holds a quick Guide press for at least 250ms and suppresses a
+     * duplicate during that interval. Finish the preceding remap test's press. */
+    SDL_Delay(260);StPump();CloseMenu();StTap(SDLK_F12);
+>>>>

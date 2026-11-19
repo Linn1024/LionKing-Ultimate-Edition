@@ -1,0 +1,17 @@
+file: runner/src/snes/ppu.c
+
+# Resume the recording field, including registers it did not write this field.
+@@ restore-recording-baseline-before-current-writes
+<<<<
+    f = &s_field[s_raster_cur];
+    for (i = 0; i < f->count; i++)
+====
+    f = &s_field[s_raster_cur];
+    /* Scanout replay used the completed field. The guest must resume from
+     * the recording field's baseline, even when its journal is empty. */
+    memcpy(&ppu->inidisp, f->regs, PPU_SAVESTATE_REGS_SIZE);
+    ppu->scrollPrev = f->scrollPrev;
+    ppu->scrollPrev2 = f->scrollPrev2;
+    ppu->m7prev = f->m7prev;
+    for (i = 0; i < f->count; i++)
+>>>>

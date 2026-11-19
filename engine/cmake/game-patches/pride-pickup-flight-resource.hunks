@@ -1,0 +1,13 @@
+file: runner/tlk_resources.c
+
+@@ append-independent-flight-movement
+<<<<
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    {"gameplay.levels.pride_lands.pickup_flight", "Pickup flight movement", 34, 1, 1, 1, "Pride Lands two reviewed HUD flights: MD destination, rise and arrival arithmetic; camera, artwork, palette and popup position independent; changing source restarts the level"},
+#endif
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+>>>>

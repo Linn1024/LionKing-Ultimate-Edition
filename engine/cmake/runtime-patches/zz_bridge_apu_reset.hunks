@@ -1,0 +1,13 @@
+# A new machine must not consume conversion residue from its predecessor.
+file: runner/src/snes/interp_bridge.c
+
+@@ reset-fractional-apu-timeline
+<<<<
+static uint64_t s_tlk_apu_rem;  /* master x 1025280, not yet whole SPC cycles */
+====
+static uint64_t s_tlk_apu_rem;  /* master x 1025280, not yet whole SPC cycles */
+void tlk_bridge_reset_apu_timing(void) {
+    s_apu_pending_master = 0;
+    s_tlk_apu_rem = 0;
+}
+>>>>

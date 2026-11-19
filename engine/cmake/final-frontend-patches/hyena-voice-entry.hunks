@@ -1,0 +1,17 @@
+file: sdl_main.c
+
+@@ hyena-voice-entry-declaration
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_hyena_audio.h"
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-hyena-voice-entry-for-both-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc14535,TlkHyenaVoiceEntry);
+        RtlRunFrame(pad);
+>>>>

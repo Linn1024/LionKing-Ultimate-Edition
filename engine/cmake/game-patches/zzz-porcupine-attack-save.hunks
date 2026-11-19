@@ -1,0 +1,34 @@
+file: runner/tlk_savestate.c
+
+@@ record-porcupine-source-in-unused-width-bit22
+<<<<
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.pickup_flight")) flags|=0x00800000u;
+====
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.pickup_flight")) flags|=0x00800000u;
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.porcupine_attack")) flags|=0x00400000u;
+>>>>
+
+@@ retain14-bit-width-with-porcupine-source
+<<<<
+    if (flags&(1u|0x00800000u)) flags|=((uint32_t)TlkCameraViewWidth()&32767u)<<8;
+====
+    if (flags&(1u|0x00800000u)) flags|=((uint32_t)TlkCameraViewWidth()&16383u)<<8;
+>>>>
+
+@@ reject-legacy-unknown-porcupine-source
+<<<<
+    if (ok && h.version==1u && h.host_frame && (current&0x7f8000ffu)) {
+====
+    if (ok && h.version==1u && h.host_frame && (current&0x7fc000ffu)) {
+>>>>
+
+@@ reject-porcupine-source-before-width-or-guest
+<<<<
+        } else if ((sources^current)&0x007fff00u) {
+            snprintf(load_error,sizeof load_error,"State needs a %u-pixel gameplay viewport",(unsigned)((sources>>8)&32767u));ok=0;
+====
+        } else if ((sources^current)&0x00400000u) {
+            snprintf(load_error,sizeof load_error,"State porcupine-attack source differs; match it in F12");ok=0;
+        } else if ((sources^current)&0x003fff00u) {
+            snprintf(load_error,sizeof load_error,"State needs a %u-pixel gameplay viewport",(unsigned)((sources>>8)&16383u));ok=0;
+>>>>

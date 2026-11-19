@@ -1,0 +1,19 @@
+file: runner/tlk_md_sprites.c
+
+@@ append-owned-installed-sprite-import
+<<<<
+#include "pride_sprite_map.h"
+====
+#include "pride_sprite_map.h"
+#include "tlk_md_sprite_assets.h"
+>>>>
+
+@@ import-prepared-sprites-after-reviewed-renderer-definitions
+<<<<
+    fprintf(f,"]}\n");fclose(f);
+}
+====
+    fprintf(f,"]}\n");fclose(f);
+}
+#include "tlk_md_sprite_assets.inc"
+>>>>

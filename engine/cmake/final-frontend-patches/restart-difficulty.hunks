@@ -1,0 +1,36 @@
+file: sdl_main.c
+
+@@ carry-requested-difficulty-into-restart-inputs
+<<<<
+static void BuildLevelMacro(int level, int invul) {
+====
+static void BuildLevelMacro(int level, int invul, unsigned difficulty) {
+>>>>
+
+@@ compensate-options-cycles-before-level-select-code
+<<<<
+    MacroWait(700); MacroTap(DOWN); MacroWait(10); MacroTap(START); MacroWait(80);
+====
+    MacroWait(700); MacroTap(DOWN); MacroWait(10); MacroTap(START); MacroWait(80);
+    /* A fresh boot starts Normal (1). The B,A in the following code cycle
+     * Options twice, to Easy (0); Y completes the code before another change.
+     * Precede it with ordinary A presses to retain the requested 0/1/2. */
+    for(unsigned i=0;i<difficulty;i++) { MacroTap(A); MacroWait(20); }
+>>>>
+
+@@ capture-setting-before-loading-poweron-checkpoint
+<<<<
+static void PrStartLevel(int level) {
+    char path[1100], msg[64];
+    PrBootPath(path, sizeof path);
+    if (!LoadStateLive(path)) { Toast("Level select: no power-on state"); return; }
+    BuildLevelMacro(level, s_sel_invul);
+====
+static void PrStartLevel(int level) {
+    char path[1100], msg[64];
+    unsigned difficulty=Wram16(0x1ff92);
+    if(difficulty>2) { Toast("Level select: invalid difficulty"); return; }
+    PrBootPath(path, sizeof path);
+    if (!LoadStateLive(path)) { Toast("Level select: no power-on state"); return; }
+    BuildLevelMacro(level, s_sel_invul, difficulty);
+>>>>

@@ -1,0 +1,12 @@
+file: sdl_main.c
+
+@@ preserve-start-selection-after-options-in-level-restart
+<<<<
+    MacroWait(20); MacroTap(START); MacroWait(60); MacroTap(UP); MacroWait(20); MacroTap(START);
+====
+    MacroWait(20); MacroTap(START); MacroWait(60);
+    /* Both Options returns select Start. Native Up clamps there; MD Up wraps. */
+    if(TlkResourcesUseMd("gameplay.menus.title_navigation"))MacroWait(6);
+    else MacroTap(UP);
+    MacroWait(20); MacroTap(START);
+>>>>

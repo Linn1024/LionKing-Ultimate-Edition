@@ -1,0 +1,131 @@
+file: sdl_main.c
+
+@@ installed-menu-argument
+<<<<
+        else if (!strcmp(a, "--asset-cache") && v) { asset_cache=v;i++; }
+====
+        else if (!strcmp(a, "--asset-cache") && v) { asset_cache=v;i++; }
+        else if (!strcmp(a, "--final-menu-assets") && v) { final_menu_asset_path=v;i++; }
+        else if (!strcmp(a, "--final-native-assets") && v) { final_native_asset_path=v;i++; }
+        else if (!strcmp(a, "--title-bank-assets") && v) { title_bank_asset_path=v;i++; }
+        else if (!strcmp(a, "--caption-assets") && v) { caption_asset_path=v;i++; }
+        else if (!strcmp(a, "--checkpoint-assets") && v) { checkpoint_asset_path=v;i++; }
+        else if (!strcmp(a, "--revival-assets") && v) { revival_asset_path=v;i++; }
+        else if (!strcmp(a, "--native-hud-assets") && v) { native_hud_asset_path=v;i++; }
+>>>>
+
+@@ load-installed-menu-before-running
+<<<<
+    TlkPrideConfigure(md_rom_path ? md_rom_path : md_default);
+====
+    TlkPrideConfigure(md_rom_path ? md_rom_path : md_default);
+    if(!prepare_resources && !ContinueMenuAssetsLoad(final_menu_asset_path))return 6;
+    if(!prepare_resources && !ContinueNativeAssetsLoad(final_native_asset_path))return 6;
+    if(!prepare_resources && !ContinueTitleBankAssetsLoad(title_bank_asset_path))return 6;
+    if(!prepare_resources && !TlkResourcesTitleAssetsReady()) {
+        fprintf(stderr,"Installed caption data is missing or incompatible. Run Setup.\n");return 6;
+    }
+    if(!prepare_resources && !TlkResourcesCheckpointAssetsReady()) {
+        fprintf(stderr,"Installed checkpoint data is missing or incompatible. Run Setup.\n");return 6;
+    }
+    if(!prepare_resources && !TlkResourcesRevivalAssetsReady()) {
+        fprintf(stderr,"Installed revival data is missing or incompatible. Run Setup.\n");return 6;
+    }
+    if(!prepare_resources && !TlkResourcesNativeHudAssetsReady()) {
+        fprintf(stderr,"Installed native HUD data is missing or incompatible. Run Setup.\n");return 6;
+    }
+>>>>
+
+@@ installed-caption-before-resource-initialization
+<<<<
+    TlkResourcesInit(rom, rom_size, md_rom_path ? md_rom_path : md_default,
+====
+    TlkResourcesSetTitleAssetsPath(caption_asset_path);
+    TlkResourcesSetCheckpointAssetsPath(checkpoint_asset_path);
+    TlkResourcesSetRevivalAssetsPath(revival_asset_path);
+    TlkResourcesSetNativeHudAssetsPath(native_hud_asset_path);
+    TlkResourcesInit(rom, rom_size, md_rom_path ? md_rom_path : md_default,
+>>>>
+
+@@ stage-fresh-boot-before-cold-load
+<<<<
+    TlkAudioBindHost(&audio_acc,(unsigned)s_audio_rate);
+    if (load_path) {
+====
+    TlkAudioBindHost(&audio_acc,(unsigned)s_audio_rate);
+    char pending_boot[4096]={0};
+    if (load_path && !ContinuePrepareBoot(pending_boot,sizeof pending_boot))
+        fprintf(stderr,"Cannot prepare the power-on checkpoint for level restarts\n");
+    if (load_path) {
+>>>>
+
+@@ discard-boot-stage-on-rejected-load
+<<<<
+        if (!tlk_state_load(load_path, &hf)) { fprintf(stderr, "cannot load state %s: %s\n", load_path,tlk_state_error()); return 8; }
+====
+        if (!tlk_state_load(load_path, &hf)) { if(pending_boot[0])remove(pending_boot); fprintf(stderr, "cannot load state %s: %s\n", load_path,tlk_state_error()); return 8; }
+>>>>
+
+@@ publish-fresh-boot-after-accepted-load
+<<<<
+        printf("loaded_state=%s at_frame=%ld\n", load_path, frame);
+====
+        printf("loaded_state=%s at_frame=%ld\n", load_path, frame);
+        ContinuePublishBoot(pending_boot);
+>>>>
+
+@@ refresh-final-source-after-commit
+<<<<
+    int restart=TlkAudioProfileChanged();
+====
+    int restart=TlkAudioProfileChanged();
+    restart|=ContinueResourcesApplied();
+>>>>
+
+@@ final-scene-save-dispatch count=4
+<<<<
+tlk_state_save(
+====
+ContinueLifecycleSave(
+>>>>
+
+@@ final-scene-load-dispatch count=3
+<<<<
+tlk_state_load(
+====
+ContinueLifecycleLoad(
+>>>>
+
+@@ capture-original-final-scene
+<<<<
+TlkWideEndFrame(s_pixels);
+====
+TlkWideEndFrame(s_pixels); FinalSceneCaptureNative(s_pixels);
+>>>>
+
+@@ compose-before-native-overlays
+<<<<
+memcpy(s_screen, s_pixels, sizeof s_screen);
+====
+memcpy(s_screen, s_pixels, sizeof s_screen); FinalScenePaintNative(s_screen);
+>>>>
+
+@@ compose-before-centred-overlays
+<<<<
+        memcpy(s_screen + y * kWidth, s_wide_px + (size_t)y * w + extra, kWidth * 4);
+====
+        memcpy(s_screen + y * kWidth, s_wide_px + (size_t)y * w + extra, kWidth * 4);
+    FinalScenePaintNative(s_screen);
+>>>>
+
+@@ compose-owned-wide-margins
+<<<<
+    for (int y = 0; y < kHeight; y++)
+        memcpy(s_screen + y * kWidth, s_wide_px + (size_t)y * w + extra, kWidth * 4);
+    FinalScenePaintNative(s_screen);
+====
+    FinalScenePaintWide(s_wide_px,w);
+    for (int y = 0; y < kHeight; y++)
+        memcpy(s_screen + y * kWidth, s_wide_px + (size_t)y * w + extra, kWidth * 4);
+    FinalScenePaintNative(s_screen);
+>>>>

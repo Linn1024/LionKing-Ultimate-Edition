@@ -1,0 +1,179 @@
+diff --git a/core/sound/blip_buf.c b/core/sound/blip_buf.c
+index 167f847..a00fbfc 100644
+--- a/core/sound/blip_buf.c
++++ b/core/sound/blip_buf.c
+@@ -84,6 +84,43 @@ struct blip_t
+ #endif
+ };
+ 
++/* TLK checkpoint extension: exclude process-local allocation pointers. The
++ * pinned core ABI is checked by the host before accepting this opaque record. */
++int tlk_blip_state_save(blip_t *m, unsigned char *out)
++{
++  int at = 0;
++  int bytes = (m->size + buf_extra) * sizeof(buf_t);
++#define PUT(v) memcpy(out + at, &(v), sizeof(v)); at += sizeof(v)
++  PUT(m->factor); PUT(m->offset); PUT(m->size); PUT(m->integrator);
++#undef PUT
++#ifdef BLIP_MONO
++  memcpy(out + at, SAMPLES(m), bytes); at += bytes;
++#else
++  memcpy(out + at, m->buffer[0], bytes); at += bytes;
++  memcpy(out + at, m->buffer[1], bytes); at += bytes;
++#endif
++  return at;
++}
++
++int tlk_blip_state_load(blip_t *m, const unsigned char *in)
++{
++  int at = 0, size;
++  int bytes = (m->size + buf_extra) * sizeof(buf_t);
++  /* Reject incompatible allocation sizes before changing this buffer. */
++  memcpy(&size, in + sizeof(m->factor) + sizeof(m->offset), sizeof(size));
++  if (size != m->size) return 0;
++#define GET(v) memcpy(&(v), in + at, sizeof(v)); at += sizeof(v)
++  GET(m->factor); GET(m->offset); GET(size); GET(m->integrator);
++#undef GET
++#ifdef BLIP_MONO
++  memcpy(SAMPLES(m), in + at, bytes); at += bytes;
++#else
++  memcpy(m->buffer[0], in + at, bytes); at += bytes;
++  memcpy(m->buffer[1], in + at, bytes); at += bytes;
++#endif
++  return at;
++}
++
+ #ifdef BLIP_MONO
+ /* probably not totally portable */
+ #define SAMPLES( blip ) ((buf_t*) ((blip) + 1))
+diff --git a/core/sound/sound.c b/core/sound/sound.c
+index b66d292..a1131d8 100644
+--- a/core/sound/sound.c
++++ b/core/sound/sound.c
+@@ -59,6 +59,34 @@ static int fm_cycles_start;
+ static int fm_cycles_count;
+ static int fm_cycles_busy;
+ 
++/* TLK exact audio continuation, additional to the ordinary chip context. */
++int tlk_sound_state_save(unsigned char *state)
++{
++  int bufferptr = 0, offset = fm_ptr - fm_buffer;
++  save_param(fm_buffer, sizeof(fm_buffer));
++  save_param(fm_last, sizeof(fm_last));
++  save_param(&offset, sizeof(offset));
++  save_param(&fm_cycles_ratio, sizeof(fm_cycles_ratio));
++  save_param(&fm_cycles_start, sizeof(fm_cycles_start));
++  save_param(&fm_cycles_count, sizeof(fm_cycles_count));
++  save_param(&fm_cycles_busy, sizeof(fm_cycles_busy));
++  return bufferptr;
++}
++int tlk_sound_state_load(unsigned char *state)
++{
++  int bufferptr = 0, offset;
++  memcpy(&offset, state + sizeof(fm_buffer) + sizeof(fm_last), sizeof(offset));
++  if (offset < 0 || offset > sizeof(fm_buffer)/sizeof(fm_buffer[0])) return 0;
++  load_param(fm_buffer, sizeof(fm_buffer));
++  load_param(fm_last, sizeof(fm_last));
++  load_param(&offset, sizeof(offset)); fm_ptr = fm_buffer + offset;
++  load_param(&fm_cycles_ratio, sizeof(fm_cycles_ratio));
++  load_param(&fm_cycles_start, sizeof(fm_cycles_start));
++  load_param(&fm_cycles_count, sizeof(fm_cycles_count));
++  load_param(&fm_cycles_busy, sizeof(fm_cycles_busy));
++  return bufferptr;
++}
++
+ /* YM chip function pointers */
+ static void (*YM_Update)(int *buffer, int length);
+ void (*fm_reset)(unsigned int cycles);
+diff --git a/core/state.c b/core/state.c
+index 79264f1..3697b77 100644
+--- a/core/state.c
++++ b/core/state.c
+@@ -38,6 +38,12 @@
+ 
+ #include "shared.h"
+ 
++extern int tlk_sound_state_save(unsigned char *);
++extern int tlk_sound_state_load(unsigned char *);
++extern int tlk_audio_state_save(unsigned char *);
++extern int tlk_audio_state_load(unsigned char *);
++unsigned tlk_audio_state_revision(void) { return 1; }
++
+ int state_load(unsigned char *state)
+ {
+   int i, bufferptr = 0;
+@@ -187,6 +193,21 @@ int state_load(unsigned char *state)
+     sms_cart_switch(~io_reg[0x0E]);
+   }
+ 
++  /* Ordinary libretro states omit audio reconstruction history. Append it
++   * after the existing format; states without the extension keep legacy load. */
++  if (!memcmp(state + bufferptr, "TLKAE001", 8))
++  {
++    int bytes;
++    bufferptr += 8;
++    load_param(&m68k.refresh_cycles, sizeof(m68k.refresh_cycles));
++    load_param(&mcycles_vdp, sizeof(mcycles_vdp));
++    bytes = tlk_sound_state_load(state + bufferptr);
++    if (!bytes) return 0;
++    bufferptr += bytes;
++    bytes = tlk_audio_state_load(state + bufferptr);
++    if (!bytes) return 0;
++    bufferptr += bytes;
++  }
+   return bufferptr;
+ }
+ 
+@@ -279,5 +300,10 @@ int state_save(unsigned char *state)
+   }
+ 
+   /* return total size */
++  memcpy(state + bufferptr, "TLKAE001", 8); bufferptr += 8;
++  save_param(&m68k.refresh_cycles, sizeof(m68k.refresh_cycles));
++  save_param(&mcycles_vdp, sizeof(mcycles_vdp));
++  bufferptr += tlk_sound_state_save(state + bufferptr);
++  bufferptr += tlk_audio_state_save(state + bufferptr);
+   return bufferptr;
+ }
+diff --git a/core/system.c b/core/system.c
+index fcdd971..266883a 100644
+--- a/core/system.c
++++ b/core/system.c
+@@ -56,6 +56,37 @@ static uint8 pause_b;
+ static EQSTATE eq[2];
+ static int16 llp,rrp;
+ 
++extern int tlk_blip_state_save(blip_t *, unsigned char *);
++extern int tlk_blip_state_load(blip_t *, const unsigned char *);
++int tlk_audio_state_save(unsigned char *state)
++{
++  int bufferptr = 0, i, present;
++  save_param(eq, sizeof(eq)); save_param(&llp, sizeof(llp)); save_param(&rrp, sizeof(rrp));
++  for (i=0; i<4; i++)
++  {
++    present = snd.blips[i] != 0; save_param(&present, sizeof(present));
++    if (present) bufferptr += tlk_blip_state_save(snd.blips[i], state + bufferptr);
++  }
++  return bufferptr;
++}
++int tlk_audio_state_load(unsigned char *state)
++{
++  int bufferptr = 0, i, present, bytes;
++  load_param(eq, sizeof(eq)); load_param(&llp, sizeof(llp)); load_param(&rrp, sizeof(rrp));
++  for (i=0; i<4; i++)
++  {
++    load_param(&present, sizeof(present));
++    if (present != (snd.blips[i] != 0)) return 0;
++    if (present)
++    {
++      bytes = tlk_blip_state_load(snd.blips[i], state + bufferptr);
++      if (!bytes) return 0;
++      bufferptr += bytes;
++    }
++  }
++  return bufferptr;
++}
++
+ /******************************************************************************************/
+ /* Audio subsystem                                                                        */
+ /******************************************************************************************/

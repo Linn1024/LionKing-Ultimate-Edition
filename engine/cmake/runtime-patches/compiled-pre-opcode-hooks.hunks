@@ -1,0 +1,35 @@
+file: runner/src/snes/interp_bridge.c
+
+@@ compiled-pre-opcode-dispatch
+<<<<
+void interp_bridge_pre_opcode_redirect(uint32_t pc24) {
+    s_pre_opcode_redirect_pc24 = pc24 & 0xFFFFFFu;
+    s_pre_opcode_redirect_valid = 1;
+}
+====
+void interp_bridge_pre_opcode_redirect(uint32_t pc24) {
+    s_pre_opcode_redirect_pc24 = pc24 & 0xFFFFFFu;
+    s_pre_opcode_redirect_valid = 1;
+}
+
+/* Generated native instructions can share registered callbacks with LLE.
+ * A redirect is returned to emitted C control flow; this never executes an
+ * interpreter step or synthesizes a guest return frame. Preserve a suspended
+ * outer interpreter's redirect state across nested compiled services. */
+uint32_t interp_bridge_compiled_pre_opcode(CpuState *cpu, uint32_t pc24) {
+    const int saved_valid = s_pre_opcode_redirect_valid;
+    const uint32_t saved_pc = s_pre_opcode_redirect_pc24;
+    const uint32_t key = pc24 & 0x7FFFFFu;
+    s_pre_opcode_redirect_valid = 0;
+    cpu_mirrors_to_p(cpu);
+    for (int i=0; i<s_pre_opcode_hook_count; ++i) {
+        if (s_pre_opcode_hooks[i].pc24 != key) continue;
+        s_pre_opcode_hooks[i].hook(cpu,pc24);
+        if (s_pre_opcode_redirect_valid) break;
+    }
+    const uint32_t target = s_pre_opcode_redirect_valid ? s_pre_opcode_redirect_pc24 : 0;
+    s_pre_opcode_redirect_valid = saved_valid;
+    s_pre_opcode_redirect_pc24 = saved_pc;
+    return target;
+}
+>>>>

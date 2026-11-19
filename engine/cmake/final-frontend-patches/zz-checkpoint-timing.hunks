@@ -1,0 +1,40 @@
+file: sdl_main.c
+
+@@ checkpoint-animation-source-wrapper
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_checkpoint_timing.h"
+static void CheckpointTimingPoint(CpuState *cpu,uint32_t pc) {
+    unsigned next=TlkCheckpointTimingOpcode(cpu,pc);
+    if(next)interp_bridge_pre_opcode_redirect(next);
+}
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-checkpoint-animation-for-both-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc55750,CheckpointTimingPoint);
+        interp_bridge_add_pre_opcode_hook(0xc557d8,CheckpointTimingPoint);
+        interp_bridge_add_pre_opcode_hook(0xc0ad54,CheckpointTimingPoint);
+        interp_bridge_add_pre_opcode_hook(0xc0ad68,CheckpointTimingPoint);
+        RtlRunFrame(pad);
+>>>>
+
+@@ initialize-checkpoint-animation-source
+<<<<
+    TlkLayoutProfileChanged();
+====
+    TlkLayoutProfileChanged();
+    TlkCheckpointTimingChanged();
+>>>>
+
+@@ restart-level-on-checkpoint-animation-change
+<<<<
+    restart|=TlkLayoutProfileChanged();
+====
+    restart|=TlkLayoutProfileChanged();
+    restart|=TlkCheckpointTimingChanged();
+>>>>

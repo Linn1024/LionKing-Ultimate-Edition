@@ -1,0 +1,25 @@
+file: runner/tlk_savestate.c
+
+@@ save-independent-health-death-gameplay-source
+<<<<
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.streaming_top")) flags|=0x10000000u;
+====
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.streaming_top")) flags|=0x10000000u;
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.health_death")) flags|=0x20000000u;
+>>>>
+
+@@ legacy-unknown-health-death-source
+<<<<
+    if (ok && h.version==1u && h.host_frame && (current&0x1f0000ffu)) {
+====
+    if (ok && h.version==1u && h.host_frame && (current&0x3f0000ffu)) {
+>>>>
+
+@@ reject-different-health-death-source
+<<<<
+        } else if ((sources^current)&0x00ffff00u) {
+====
+        } else if ((sources^current)&0x20000000u) {
+            snprintf(load_error,sizeof load_error,"State health-death source differs; match it in F12");ok=0;
+        } else if ((sources^current)&0x00ffff00u) {
+>>>>

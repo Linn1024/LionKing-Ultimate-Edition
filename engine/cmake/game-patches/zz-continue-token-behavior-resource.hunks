@@ -1,0 +1,14 @@
+file: runner/tlk_resources.c
+
+@@ append-independent-continue-token-cue-and-animation
+<<<<
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    {"audio.effects.world.continue_token", "Continue token voice", 25, 1, 1, 1, "Pride Lands, Can't Wait to Be King and Elephant Graveyard cub Continue-token pickup: original MD PCM voice15, parameter96; level music, artwork, timing and reward remain independent"},
+    {"gameplay.levels.pride_lands.continue_token_animation", "Continue-token spin speed", 27, 1, 1, 1, "Choose the Continue token's spin speed in every level: Genesis spins slightly more slowly than SNES. Artwork, colours, placement, sound and reward are separate. Applies with a level restart."},
+#endif
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+>>>>

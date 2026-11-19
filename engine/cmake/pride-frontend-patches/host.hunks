@@ -1,0 +1,49 @@
+file: sdl_main.c
+
+@@ count-overlay-once
+<<<<
+static void DrawToast(void) {
+====
+static unsigned long s_sp_toast_calls;
+static void DrawToast(void) { ++s_sp_toast_calls;
+>>>>
+
+@@ expose-one-pass-presentation
+<<<<
+static void Present(void) {
+====
+static void Present(void);
+static void PresentCore(void) {
+>>>>
+
+@@ initialize-configured-runtime
+<<<<
+                     resource_profile ? resource_profile : resource_default);
+====
+                     resource_profile ? resource_profile : resource_default);
+    TlkPrideConfigure(md_rom_path ? md_rom_path : md_default);
+    TlkRngRuntimeProfileChanged();
+>>>>
+
+@@ restart-for-configured-runtime
+<<<<
+    restart|=TlkLeavesProfileChanged();
+====
+    restart|=TlkLeavesProfileChanged();
+    restart|=TlkPrideProfileChanged();
+    restart|=TlkRngRuntimeProfileChanged();
+>>>>
+
+@@ configured-diagnostics count=7
+<<<<
+getenv(
+====
+TlkPrideSetting(
+>>>>
+
+@@ configured-files count=11
+<<<<
+fopen(
+====
+TlkPrideFileOpen(
+>>>>

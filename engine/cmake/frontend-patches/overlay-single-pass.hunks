@@ -1,0 +1,81 @@
+file: runner/sdl_main.c
+
+@@ shared-frontend-overlay-drawing
+<<<<
+/* The widescreen picture into dst (pitch in bytes), with every overlay pixel
+ * (where s_screen differs from s_pixels) over its native centre. */
+====
+/* Draw once against the selected canvas's native-size UI region. */
+static void DrawFrontendOverlays(void) {
+    if (s_practice && !s_menu_open) DrawPractice();
+    DrawToast();
+    if (TurboHeld() && !s_menu_open) {
+        char t[8];
+        snprintf(t, sizeof t, ">>%dx", s_turbo_speed);
+        Panel(kWidth - 48, 4, 44, 16);
+        Ink(255, 255, 255);
+        DrawText(kWidth - 44, 8, t);
+    }
+    if (s_menu_open && !s_menu_gl)
+        recomp_runtime_ui_render_argb8888(s_ui, s_screen, kWidth, kHeight, kWidth * 4);
+}
+
+/* Compose the selected picture, then blend overlays against its centre. */
+>>>>
+
+@@ wide-overlays-use-completed-canvas
+<<<<
+    for (int y = 0; y < kHeight; y++) {
+        uint32_t *row = (uint32_t *)(dst + (size_t)y * pitch);
+        memcpy(row, s_wide_px + (size_t)y * w, (size_t)w * 4);
+        for (int x = 0; x < kWidth; x++) {
+            uint32_t p, o = s_screen[y * kWidth + x];
+            memcpy(&p, s_pixels + (y * kWidth + x) * 4, 4);
+            if (o != p) row[extra + x] = o;
+        }
+    }
+}
+
+/* Shows s_pixels plus the overlay (menu when open, toast, turbo tag). */
+====
+    for (int y = 0; y < kHeight; y++)
+        memcpy(s_screen + y * kWidth, s_wide_px + (size_t)y * w + extra, kWidth * 4);
+    DrawFrontendOverlays();
+    for (int y = 0; y < kHeight; y++) {
+        uint32_t *row = (uint32_t *)(dst + (size_t)y * pitch);
+        memcpy(row, s_wide_px + (size_t)y * w, (size_t)w * 4);
+        memcpy(row + extra, s_screen + y * kWidth, kWidth * 4);
+    }
+}
+
+/* Shows s_pixels plus the overlay (menu when open, toast, turbo tag). */
+>>>>
+
+@@ choose-canvas-before-drawing-overlays
+<<<<
+static void Present(void) {
+    if (s_rom_prompt) DrawRomPrompt();   /* before the game starts: no PPU picture, WRAM or overlays yet */
+    else {
+        memcpy(s_screen, s_pixels, sizeof s_screen);
+        if (s_practice && !s_menu_open) DrawPractice();
+        DrawToast();
+        if (TurboHeld() && !s_menu_open) {
+            char t[8];
+            snprintf(t, sizeof t, ">>%dx", s_turbo_speed);
+            Panel(kWidth - 48, 4, 44, 16);
+            Ink(255, 255, 255);
+            DrawText(kWidth - 44, 8, t);
+        }
+        /* Without ImGui the same menu is drawn into the 256x224 picture. */
+        if (s_menu_open && !s_menu_gl) recomp_runtime_ui_render_argb8888(s_ui, s_screen, kWidth, kHeight, kWidth * 4);
+    }
+    const int sc = s_hd && !s_rom_prompt ? s_hd_mode7 : 1, ww = s_rom_prompt ? 0 : WideWidth();
+====
+static void Present(void) {
+    const int sc = s_hd && !s_rom_prompt ? s_hd_mode7 : 1, ww = s_rom_prompt ? 0 : WideWidth();
+    if (s_rom_prompt) DrawRomPrompt();   /* no guest canvas before initialization */
+    else if (!ww) {
+        memcpy(s_screen, s_pixels, sizeof s_screen);
+        DrawFrontendOverlays();
+    }
+>>>>

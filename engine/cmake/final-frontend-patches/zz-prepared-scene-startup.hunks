@@ -1,0 +1,11 @@
+file: sdl_main.c
+
+@@ reject-invalid-scene-data-before-dependent-package-checks
+<<<<
+    TlkPrideConfigure(md_rom_path ? md_rom_path : md_default);
+====
+    if(asset_cache && !prepare_resources && !TlkResourcesCachePrepared()) {
+        fprintf(stderr,"Installed scene data could not be loaded. Run Setup.cmd again.\n");free(rom);return 8;
+    }
+    TlkPrideConfigure(md_rom_path ? md_rom_path : md_default);
+>>>>

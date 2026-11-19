@@ -1,0 +1,45 @@
+file: sdl_main.c
+
+@@ optional-device-queue-observer
+<<<<
+static SDL_AudioStream *astream;
+====
+static SDL_AudioStream *astream;
+/* Optional research telemetry; never supplies or changes PCM. */
+static SDL_AtomicInt s_audio_missing_calls, s_audio_missing_bytes;
+static void SDLCALL AudioQueueRequested(void *ctx, SDL_AudioStream *stream,
+                                       int additional, int total) {
+    (void)ctx; (void)stream; (void)total;
+    if(additional>0) {
+        SDL_AddAtomicInt(&s_audio_missing_calls,1);
+        SDL_AddAtomicInt(&s_audio_missing_bytes,additional);
+    }
+}
+static void AudioQueueTrace(SDL_AudioStream *stream, long at, int queued) {
+    static FILE *log; static int tried; static SDL_AudioStream *observed;
+    if(!tried) {
+        const char *path=getenv("TLK_AUDIO_QUEUE_TRACE"); tried=1;
+        if(path && *path) {
+            log=fopen(path,"w");
+            if(log)fprintf(log,"frame,ns,queued_frames,paused,missing_calls,missing_bytes\n");
+        }
+    }
+    if(!log)return;
+    if(observed!=stream) {
+        SDL_SetAudioStreamGetCallback(stream,AudioQueueRequested,NULL);
+        observed=stream;
+    }
+    fprintf(log,"%ld,%llu,%d,%d,%d,%d\n",at,(unsigned long long)SDL_GetTicksNS(),queued,
+            (int)SDL_AudioDevicePaused(SDL_GetAudioStreamDevice(stream)),
+            SDL_GetAtomicInt(&s_audio_missing_calls),SDL_GetAtomicInt(&s_audio_missing_bytes));
+    fflush(log);
+}
+>>>>
+
+@@ trace-before-queue-servo
+<<<<
+                int queued = SDL_GetAudioStreamQueued(astream) / 4;
+====
+                int queued = SDL_GetAudioStreamQueued(astream) / 4;
+                AudioQueueTrace(astream,frame,queued);
+>>>>

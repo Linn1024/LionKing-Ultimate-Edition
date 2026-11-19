@@ -1,0 +1,11 @@
+file: runner/src/snes/interp_bridge.c
+
+@@ native-world-ram-work-budget
+<<<<
+            cpu->master_cycles += _master;
+====
+            /* PC-native budget for reviewed RAM-only world operations. */
+            { extern uint64_t TlkNativeUpdateMasterBudget(unsigned,unsigned,uint64_t) __attribute__((weak));
+              if(TlkNativeUpdateMasterBudget)_master=TlkNativeUpdateMasterBudget(pc_before,in.db,_master); }
+            cpu->master_cycles += _master;
+>>>>

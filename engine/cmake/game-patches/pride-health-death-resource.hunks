@@ -1,0 +1,19 @@
+file: runner/tlk_resources.c
+
+@@ advertise-only-compiled-health-death-runtime
+<<<<
+#include "native_adapters.h"
+====
+#include "native_adapters.h"
+#ifndef TLK_PRIDE_DEATH_AOT_AVAILABLE
+#define TLK_PRIDE_DEATH_AOT_AVAILABLE 0
+#endif
+>>>>
+
+@@ append-independent-health-death-choice
+<<<<
+    {"graphics.sprites.checkpoints.palette", "Palette", 102, 1, 0, 1, "Shared checkpoint head palette; independent of Simba and HUD; exact native palette check preserves flashes"},
+====
+    {"graphics.sprites.checkpoints.palette", "Palette", 102, 1, 0, 1, "Shared checkpoint head palette; independent of Simba and HUD; exact native palette check preserves flashes"},
+    {"gameplay.levels.pride_lands.health_death", "Health death and revival", 34, 1, 1, TLK_PRIDE_DEATH_AOT_AVAILABLE, "Pride Lands nonfinal cub health death: reviewed MD display/revival timing, checkpoint and default reloads; artwork and audio remain independent. Final-life, fall-death and other scenes retain native behavior. Changing this source restarts the level"},
+>>>>

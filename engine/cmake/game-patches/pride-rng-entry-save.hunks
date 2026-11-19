@@ -1,0 +1,25 @@
+file: runner/tlk_savestate.c
+
+@@ save-independent-scene-random-source
+<<<<
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.health_death")) flags|=0x20000000u;
+====
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.health_death")) flags|=0x20000000u;
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.random_entry")) flags|=0x40000000u;
+>>>>
+
+@@ legacy-unknown-scene-random-source
+<<<<
+    if (ok && h.version==1u && h.host_frame && (current&0x3f0000ffu)) {
+====
+    if (ok && h.version==1u && h.host_frame && (current&0x7f0000ffu)) {
+>>>>
+
+@@ reject-different-scene-random-source
+<<<<
+        } else if ((sources^current)&0x00ffff00u) {
+====
+        } else if ((sources^current)&0x40000000u) {
+            snprintf(load_error,sizeof load_error,"State scene-random source differs; match it in F12");ok=0;
+        } else if ((sources^current)&0x00ffff00u) {
+>>>>

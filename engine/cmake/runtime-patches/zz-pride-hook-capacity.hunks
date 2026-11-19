@@ -1,0 +1,19 @@
+file: runner/src/snes/interp_bridge.c
+
+@@ reserve-space-for-independent-game-hooks-and-loader-returns
+<<<<
+enum { kInterpPreOpcodeHookSlots = 192 };
+====
+enum { kInterpPreOpcodeHookSlots = 1024 };
+>>>>
+
+@@ reject-missing-game-hook-registration
+<<<<
+    if (s_pre_opcode_hook_count>=kInterpPreOpcodeHookSlots) return false;
+====
+    if (s_pre_opcode_hook_count>=kInterpPreOpcodeHookSlots) {
+        fprintf(stderr, "game hook capacity exceeded (%d) at %06x\n",
+                kInterpPreOpcodeHookSlots, (unsigned)pc24);
+        abort();
+    }
+>>>>

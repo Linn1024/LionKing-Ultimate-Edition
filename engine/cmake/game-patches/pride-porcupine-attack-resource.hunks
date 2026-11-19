@@ -1,0 +1,13 @@
+file: runner/tlk_resources.c
+
+@@ append-independent-porcupine-attack
+<<<<
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    {"gameplay.levels.pride_lands.porcupine_attack", "Porcupine attack timing", 34, 1, 1, 1, "Pride Lands porcupine attack: MD late contact phase and timer28 cue; original animation, reaction and retirement paths retained; artwork, body bounds and sound source independent; changing source restarts the level"},
+#endif
+};
+enum { COUNT = sizeof nodes / sizeof nodes[0] };
+>>>>

@@ -1,0 +1,43 @@
+# Preserve original synthesis; replace only dry output with verified caller ownership.
+file: runner/src/snes/dsp.c
+
+@@ native-owner-dsp-api
+<<<<
+#include "dsp.h"
+====
+#include "dsp.h"
+#include "tlk_native_audio_owner.h"
+>>>>
+
+@@ native-owner-dsp-reset
+<<<<
+void dsp_reset(Dsp* dsp) {
+====
+void dsp_reset(Dsp* dsp) {
+  TlkNativeAudioOwnerReset();
+>>>>
+
+@@ native-owner-dry-output
+<<<<
+    dsp_cycleChannel(dsp, i);
+====
+    dsp_cycleChannel(dsp, i);
+    if(TlkNativeAudioOwnerMusicMute(i,dsp->echoVolumeL,dsp->echoVolumeR))continue;
+    if(TlkNativeAudioOwnerMute(i,dsp->channel[i].srcn,dsp->channel[i].echoEnable))continue;
+>>>>
+
+@@ native-owner-kon-latch
+<<<<
+    case 0x4c: {
+====
+    case 0x4c: {
+      TlkNativeAudioOwnerLatchKon(val);
+>>>>
+
+@@ native-owner-actual-keyon
+<<<<
+      dsp->channel[ch].keyOn = false;
+====
+      dsp->channel[ch].keyOn = false;
+      TlkNativeAudioOwnerCommit(ch);
+>>>>

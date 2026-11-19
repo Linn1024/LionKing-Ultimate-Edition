@@ -1,0 +1,63 @@
+# Save files are timeline jumps, unlike netplay rollback. Preserve the native
+# consumer history separately; do not change the framework's rollback contract.
+file: runner/src/common_rtl.c
+
+@@ tlk-native-output-history
+<<<<
+void RtlRenderAudio(int16 *audio_buffer, int samples, int channels) {
+====
+typedef struct TlkNativeAudioHistory {
+  uint32_t version, size;
+  DspOutputRing ring;
+  double phase, occupancy, rate;
+  int32_t starved, fade_pos, fade_out;
+  uint32_t priming, fast_forward, recovery_frames, recovery_remaining;
+  int16_t hold_l, hold_r, anchor_l, anchor_r, last_l, last_r;
+} TlkNativeAudioHistory;
+size_t TlkNativeAudioHistorySize(void) { return sizeof(TlkNativeAudioHistory); }
+int TlkNativeAudioSaveHistory(uint8_t *data, size_t size) {
+  TlkNativeAudioHistory h;
+  if (!data || size != sizeof h || !g_snes) return 0;
+  memset(&h, 0, sizeof h); h.version = 1; h.size = sizeof h;
+  RtlApuLock();
+  dsp_output_ring_save(g_snes->apu->dsp, &h.ring);
+  h.phase = s_render_phase; h.occupancy = s_render_occ_ema; h.rate = s_render_output_rate;
+  h.starved = s_render_starved; h.fade_pos = s_render_fade_pos; h.fade_out = s_render_fade_out;
+  h.priming = s_render_priming; h.fast_forward = g_audio_fast_forward;
+  h.recovery_frames = g_audio_recovery_frames; h.recovery_remaining = g_audio_recovery_remaining;
+  h.hold_l = s_render_hold_l; h.hold_r = s_render_hold_r;
+  h.anchor_l = g_audio_recovery_anchor_l; h.anchor_r = g_audio_recovery_anchor_r;
+  h.last_l = g_audio_last_output_l; h.last_r = g_audio_last_output_r;
+  RtlApuUnlock(); memcpy(data, &h, sizeof h); return 1;
+}
+int TlkNativeAudioValidateHistory(const uint8_t *data, size_t size) {
+  TlkNativeAudioHistory h;
+  if (!data || size != sizeof h) return 0;
+  memcpy(&h, data, size);
+  return h.version == 1 && h.size == sizeof h &&
+    h.ring.write - h.ring.read <= DSP_SAMPLE_RING &&
+    h.phase >= 0 && h.phase < 1 && h.occupancy >= -1 && h.occupancy <= DSP_SAMPLE_RING &&
+    h.rate >= 8000 && h.rate <= 192000 && h.starved >= 0 && h.starved <= 1 &&
+    h.fade_pos >= 0 && h.fade_pos <= RTL_AUDIO_FADE_FRAMES &&
+    h.fade_out >= 0 && h.fade_out <= RTL_AUDIO_FADE_FRAMES &&
+    h.priming <= 1 && h.fast_forward <= 1 && h.recovery_frames <= 30 &&
+    h.recovery_remaining <= RTL_AUDIO_RECOVERY_RAMP;
+}
+int TlkNativeAudioLoadHistory(const uint8_t *data, size_t size) {
+  TlkNativeAudioHistory h;
+  if (!g_snes || !TlkNativeAudioValidateHistory(data, size)) return 0;
+  memcpy(&h, data, size);
+  RtlApuLock();
+  dsp_output_ring_restore(g_snes->apu->dsp, &h.ring);
+  s_render_phase = h.phase; s_render_occ_ema = h.occupancy;
+  s_render_starved = h.starved; s_render_fade_pos = h.fade_pos; s_render_fade_out = h.fade_out;
+  s_render_priming = h.priming; g_audio_fast_forward = h.fast_forward;
+  g_audio_recovery_frames = h.recovery_frames; g_audio_recovery_remaining = h.recovery_remaining;
+  s_render_hold_l = h.hold_l; s_render_hold_r = h.hold_r;
+  g_audio_recovery_anchor_l = h.anchor_l; g_audio_recovery_anchor_r = h.anchor_r;
+  g_audio_last_output_l = h.last_l; g_audio_last_output_r = h.last_r;
+  RtlApuUnlock(); return 1;
+}
+
+void RtlRenderAudio(int16 *audio_buffer, int samples, int channels) {
+>>>>

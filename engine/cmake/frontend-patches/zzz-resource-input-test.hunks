@@ -1,0 +1,20 @@
+file: runner/sdl_main.c
+
+@@ virtual-resource-editor-test-helpers
+<<<<
+static int RemapSelfTest(void) {
+====
+#include "tlk_resource_editor_selftest.h"
+
+static int RemapSelfTest(void) {
+>>>>
+
+@@ exercise-editor-on-the-attached-virtual-device
+<<<<
+        StCheck(s_menu_open, "virtual Back+Start opens the menu");
+        SDL_DetachVirtualJoystick(vid);
+====
+        StCheck(s_menu_open, "virtual Back+Start opens the menu");
+        if (!s_menu_gl) StResourceSelfTest(js);
+        SDL_DetachVirtualJoystick(vid);
+>>>>

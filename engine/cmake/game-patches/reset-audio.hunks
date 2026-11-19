@@ -1,0 +1,16 @@
+file: runner/tlk_audio.c
+
+@@ reset-machine-mixer-timeline
+<<<<
+static int audio_fingerprint(uint8_t hash[32]) {
+====
+void TlkAudioMachineReset(void) {
+    TlkAudioReset();
+    frame = music_scene = 0;
+    music_choice = 0;
+    saved_fraction = 0;
+    saved_rate = host_rate;
+    if (host_fraction) *host_fraction = 0;
+}
+static int audio_fingerprint(uint8_t hash[32]) {
+>>>>

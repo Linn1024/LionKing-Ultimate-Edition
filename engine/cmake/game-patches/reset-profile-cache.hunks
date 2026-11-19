@@ -1,0 +1,13 @@
+# Machine state is new; effective resource choices survive the reset.
+file: runner/tlk_audio.c
+
+@@ initialize-effective-audio-source-cache
+<<<<
+    music_choice = 0;
+====
+    music_choice = music_mask();
+    for (unsigned i = 0; i < CUE_COUNT; i++)
+        cue_choices[i] = TlkResourcesUseMd(cues[i].id);
+    for (unsigned i = 0; i < TRIGGER_COUNT; i++)
+        trigger_choices[i] = TlkResourcesUseMd(trigger_sources[i]);
+>>>>

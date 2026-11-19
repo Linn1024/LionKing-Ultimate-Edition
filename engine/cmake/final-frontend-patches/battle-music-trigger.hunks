@@ -1,0 +1,10 @@
+file: sdl_main.c
+
+@@ register-opening-jump-for-compiled-and-interpreter-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc14453,TlkAudioHyenaBattleJump);
+        interp_bridge_add_pre_opcode_hook(0xc144d8,TlkAudioHyenaBattleJump);
+        RtlRunFrame(pad);
+>>>>

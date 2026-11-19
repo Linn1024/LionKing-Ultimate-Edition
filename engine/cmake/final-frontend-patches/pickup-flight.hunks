@@ -1,0 +1,40 @@
+file: sdl_main.c
+
+@@ independent-pickup-flight-hook-wrapper
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_pickup_flight_runtime.h"
+static void PickupFlightPoint(CpuState *cpu,uint32_t pc) {
+    uint32_t next=TlkPickupFlightOpcode(cpu,pc);
+    if(next)interp_bridge_pre_opcode_redirect(next);
+}
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-flight-boundaries-for-both-execution-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc5531b,PickupFlightPoint);
+        interp_bridge_add_pre_opcode_hook(0xc554e7,PickupFlightPoint);
+        interp_bridge_add_pre_opcode_hook(0xc55343,PickupFlightPoint);
+        interp_bridge_add_pre_opcode_hook(0xc5550f,PickupFlightPoint);
+        RtlRunFrame(pad);
+>>>>
+
+@@ initialize-independent-flight-selection
+<<<<
+    TlkLayoutProfileChanged();
+====
+    TlkLayoutProfileChanged();
+    TlkPickupFlightProfileChanged();
+>>>>
+
+@@ apply-flight-source-with-level-restart
+<<<<
+    restart|=TlkLayoutProfileChanged();
+====
+    restart|=TlkLayoutProfileChanged();
+    restart|=TlkPickupFlightProfileChanged();
+>>>>

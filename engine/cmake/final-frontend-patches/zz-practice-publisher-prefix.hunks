@@ -1,0 +1,11 @@
+file: sdl_main.c
+
+@@ wait-for-selected-startup-cards-before-practice-menu-input
+<<<<
+    MacroWait(700); MacroTap(DOWN); MacroWait(10); MacroTap(START); MacroWait(80);
+====
+    /* The selected MD publisher sequence adds189 native updates. Let those
+     * finish before sending the ordinary title -> Options shortcut inputs. */
+    MacroWait(700 + (TlkResourcesUseMd("graphics.menus.publisher_cards") ? 189 : 0));
+    MacroTap(DOWN); MacroWait(10); MacroTap(START); MacroWait(80);
+>>>>

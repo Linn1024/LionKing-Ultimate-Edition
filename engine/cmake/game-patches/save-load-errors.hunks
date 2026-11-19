@@ -1,0 +1,22 @@
+file: runner/tlk_savestate.c
+
+@@ retain-which-continuation-section-failed
+<<<<
+    ok = RtlRollbackLoadFromMemory(blob, (size_t)h.blob_len);
+    free(blob);
+    if(ok)ok=TlkAudioLoadHistory(audio,audio_len);
+====
+    ok = RtlRollbackLoadFromMemory(blob, (size_t)h.blob_len);
+    const int runtime_ok=ok;
+    free(blob);
+    if(ok)ok=TlkAudioLoadHistory(audio,audio_len);
+>>>>
+
+@@ distinguish-runtime-and-audio-incompatibility
+<<<<
+        snprintf(load_error,sizeof load_error,"State audio continuation is incompatible or damaged");return 0;
+====
+        snprintf(load_error,sizeof load_error,"%s",runtime_ok?
+            "State audio continuation is incompatible or damaged":
+            "State runtime is incompatible or damaged; use its original player");return 0;
+>>>>

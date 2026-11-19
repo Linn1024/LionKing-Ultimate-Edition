@@ -1,0 +1,12 @@
+file: runner/src/snes/interp816.c
+
+# Win32 API uses stdcall on x86; x64 ignores the distinction. The pinned
+# direct declarations used cdecl and fail to link against MinGW's imports.
+@@ qpc-calling-convention
+<<<<
+        extern int __cdecl QueryPerformanceCounter(T_LARGE_INT *);
+        extern int __cdecl QueryPerformanceFrequency(T_LARGE_INT *);
+====
+        extern int __stdcall QueryPerformanceCounter(T_LARGE_INT *);
+        extern int __stdcall QueryPerformanceFrequency(T_LARGE_INT *);
+>>>>

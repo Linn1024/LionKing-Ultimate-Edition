@@ -1,0 +1,69 @@
+file: runner/tlk_resources.c
+
+@@ declare-prepared-sprite-reader
+<<<<
+#include "tlk_md_sprites.h"
+====
+#include "tlk_md_sprites.h"
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+#include "tlk_md_sprite_assets.h"
+#endif
+>>>>
+
+@@ activate-owned-installed-sprites
+<<<<
+        TlkMdSpritesInit(rom,0x300000);
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+        if (!prepare_cache && TlkMdSpriteAssetsReady()) {
+            if (!TlkMdSpriteAssetsActivate()) {
+                snprintf(md_status,sizeof md_status,"Installed sprite data could not be activated. Run Setup again.");
+                free(rom);return 0;
+            }
+        } else
+#endif
+        TlkMdSpritesInit(rom,0x300000);
+>>>>
+
+@@ use-prepared-md-shared-palette
+<<<<
+        for (unsigned i = 0; i < 16; i++) {
+            unsigned off = 0x1d78aa + i * 2, c = rom[off] * 256u + rom[off+1];
+            md_cub[i] = TlkMdColor555(c);
+        }
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+        if (!prepare_cache && TlkMdSpriteAssetsReady())
+            TlkMdSpriteAssetsSharedPalettes(NULL,md_cub);
+        else
+#endif
+        for (unsigned i = 0; i < 16; i++) {
+            unsigned off = 0x1d78aa + i * 2, c = rom[off] * 256u + rom[off+1];
+            md_cub[i] = TlkMdColor555(c);
+        }
+>>>>
+
+@@ use-prepared-native-shared-palette
+<<<<
+    if (snes && size >= 0x7bb3)
+        for (unsigned i = 0; i < 16; i++) snes_cub[i] = snes[0x7b93+i*2] | snes[0x7b94+i*2] << 8;
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    if (!prepare_cache && TlkMdSpriteAssetsReady())
+        TlkMdSpriteAssetsSharedPalettes(snes_cub,NULL);
+    else
+#endif
+    if (snes && size >= 0x7bb3)
+        for (unsigned i = 0; i < 16; i++) snes_cub[i] = snes[0x7b93+i*2] | snes[0x7b94+i*2] << 8;
+>>>>
+
+@@ preserve-prepared-native-death-and-palettes
+<<<<
+    if (md_ready) TlkMdSpritesBindSnes(snes,size);
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+    if (md_ready && (prepare_cache || !TlkMdSpriteAssetsReady())) TlkMdSpritesBindSnes(snes,size);
+#else
+    if (md_ready) TlkMdSpritesBindSnes(snes,size);
+#endif
+>>>>

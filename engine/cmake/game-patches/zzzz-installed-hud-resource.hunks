@@ -1,0 +1,26 @@
+file: runner/tlk_resources.c
+
+@@ declare-final-target-prepared-hud-reader
+<<<<
+#include "tlk_md_hud.h"
+====
+#include "tlk_md_hud.h"
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+#include "tlk_md_hud_assets.h"
+#endif
+>>>>
+
+@@ use-prepared-hud-in-installed-final-target
+<<<<
+        TlkMdHudInit(rom,0x300000);
+====
+#if defined(TLK_PRIDE_FINAL_AVAILABLE) && TLK_PRIDE_FINAL_AVAILABLE
+        if (!prepare_cache && TlkMdHudAssetsReady()) {
+            if (!TlkMdHudAssetsActivate()) {
+                snprintf(md_status,sizeof md_status,"Installed HUD data is invalid. Run Setup again.");
+                free(rom);return 0;
+            }
+        } else
+#endif
+        TlkMdHudInit(rom,0x300000);
+>>>>

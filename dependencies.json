@@ -1,0 +1,10 @@
+{
+  "snesrecomp": {
+    "url": "https://github.com/RetroPortingToolKit/snesrecomp.git",
+    "revision": "e54427bad93fb75729ce8214fdd7a46e197e6223"
+  },
+  "recomp-ui": {
+    "url": "https://github.com/RetroPortingToolKit/recomp-ui.git",
+    "revision": "0546fbcb0126bb14bf88d2128b4fe8a4229570a3"
+  }
+}

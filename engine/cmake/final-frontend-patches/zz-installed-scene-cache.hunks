@@ -1,0 +1,27 @@
+file: sdl_main.c
+
+@@ reject-empty-explicit-cache-path-before-resource-initialization
+<<<<
+    TlkResourcesSetCachePath(prepare_resources?prepare_resources:asset_cache,prepare_resources!=NULL);
+====
+    if (!prepare_resources && asset_cache && !*asset_cache) {
+        fprintf(stderr,"Cannot load installed game data: scene cache path is empty. Run Setup again.\n");
+        free(rom);return 8;
+    }
+    TlkResourcesSetCachePath(prepare_resources?prepare_resources:asset_cache,prepare_resources!=NULL);
+>>>>
+
+@@ stop-installed-playback-before-window-audio-and-guest-on-cache-failure
+<<<<
+        free(rom);return prepared?0:8;
+    }
+    if (!win && !OpenVideo()) return 3;   /* already open when the ROM was asked for */
+====
+        free(rom);return prepared?0:8;
+    }
+    if (asset_cache && !TlkResourcesHasMd()) {
+        fprintf(stderr,"Cannot load installed game data: %s\n",TlkResourcesMdStatus());
+        free(rom);return 8;
+    }
+    if (!win && !OpenVideo()) return 3;   /* already open when the ROM was asked for */
+>>>>

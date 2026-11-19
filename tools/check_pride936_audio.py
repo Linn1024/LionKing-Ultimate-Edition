@@ -1,0 +1,19 @@
+"""Focused adult-hyena source choices and health-death/retry music in7/8."""
+import json,csv,os,re,subprocess
+from pathlib import Path
+from audit_scenes import ROOT
+from build_pride_compiled_hooks import digest
+out=ROOT/'build/pride936-audio';out.mkdir(exist_ok=True);cases={};checks={};env={k:v for k,v in os.environ.items() if not k.startswith(('TLK_','SDL_','SNESRECOMP_'))};deaths=json.loads((ROOT/'build/pride935-death/report.json').read_text())['cases']
+def run(level,name,start,end,fixture,tape,profile,old=False):
+ folder=out/(str(level)+'-'+name);folder.mkdir(exist_ok=True);cmd=json.loads((ROOT/'build/pride931-choices/report.json').read_text())['cases'][f'{level}-native']['command'].copy();cmd[0]=str(ROOT/('build/later910/player.exe' if old else 'build/pride929/player.exe'))
+ for flag,value in (('--load',fixture),('--input-polled',tape),('--frames',end),('--hash-at',end),('--config',folder/'host.ini'),('--resource-profile',folder/'resources.ini'),('--dump-window',folder/'window.png'),('--dump-scene',folder/'scene.json')):cmd[cmd.index(flag)+1]=str(value)
+ (folder/'host.ini').write_text('opengl = 0\nscale = 1\n');(folder/'resources.ini').write_text('schema = 1\ngame = snes\n'+profile);cmd[cmd.index('--sprite-assets')+1]=str(ROOT/('build/later909-helper/sprites.assets' if old else 'build/pride928-helper/sprites.assets'));cmd+=['--wav',str(folder/'audio.wav'),'--wav-seconds','20']
+ with (folder/'run.log').open('wb') as log:subprocess.run(cmd,cwd=ROOT,env=dict(env,TLK_MD_SOUND_COMMANDS=str(folder/'commands.csv'),TLK_AUDIO_STEMS=str(folder/'stems.csv')),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=20,creationflags=subprocess.CREATE_NO_WINDOW)
+ rows=list(csv.DictReader((folder/'commands.csv').open()));stems=list(csv.DictReader((folder/'stems.csv').open()));hold=[r for r in stems if start+120<=int(r['frame'])<=start+200];scene=json.loads((folder/'scene.json').read_text());record=dict(command=cmd,music=[int(r['value']) for r in rows if r['selector']=='1'],voices=[int(r['value']) for r in rows if r['selector']=='19'],window_sha256=digest(folder/'window.png'),pcm_sha256=digest(folder/'audio.wav'),gameplay=scene['latched_gameplay'],guest=dict(re.findall(r'^(frame_sha256|wram_sha256)=(\w+)',(folder/'run.log').read_text(),re.M)),hold_native_peak=max((int(r['native_peak']) for r in hold),default=0),hold_md_peak=max((int(r['md_peak']) for r in hold),default=0));cases[str(level)+'-'+name]=record;print(level,name,record['music'],record['voices'],flush=True);return record
+for level,source,track in ((9,'pride_rock',432),):
+ d=deaths[str(level)];start=d['frame'];args=(d['fixture'],d['tape'])
+ old=run(level,'old-native',start,start+200,*args,'',True);native=run(level,'native',start,start+200,*args,'');md=run(level,'death-md',start,start+600,*args,f'audio.music.{source} = md\n');nd=run(level,'death-native',start,start+600,*args,f'audio.music.{source} = md\naudio.music.{source}.death = snes\n')
+ checks[f'{level}/native_preserved']=all(old[k]==native[k] for k in ('window_sha256','pcm_sha256','guest'));checks[f'{level}/death_retry']=430 in md['music'] and md['music'][-1]==track and md['gameplay']['health']>0;checks[f'{level}/no_music_overlap']=md['hold_native_peak']==0 and md['hold_md_peak']>0;checks[f'{level}/native_death_independent']=430 not in nd['music'] and 0 in nd['music'] and nd['hold_native_peak']>0;checks[f'{level}/music_gameplay_preserved']=md['gameplay']==nd['gameplay']
+
+paths=[Path(__file__),ROOT/'build/pride929/build-report.json',ROOT/'build/pride935-death/report.json',ROOT/'build/later893-hyena-audio/report.json']
+(out/'report.json').write_text(json.dumps(dict(result='PASS' if all(checks.values()) else 'INCOMPLETE',checks=checks,cases=cases,source_sha256={p.relative_to(ROOT).as_posix():digest(p) for p in paths}),indent=2)+'\n');print(checks,flush=True)

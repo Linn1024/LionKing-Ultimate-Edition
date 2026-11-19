@@ -1,0 +1,50 @@
+# Relative APU catch-up retains a fractional master-to-SPC conversion residue.
+# Like pending master clocks, that residue belongs to the guest timeline and
+# must rewind on a state load. Absolute port scheduling can temporarily become
+# unanchored after a bank transfer; the next relative flush then consumes it.
+# Append within the rollback record's existing zero-filled 1024-byte bridge
+# storage so preceding fields retain their offsets. Older records supply zero.
+file: runner/src/snes/interp_bridge.c
+
+@@ apu-conversion-remainder-storage
+<<<<
+uint64_t s_apu_pending_master = 0;  /* TLK: shared with runner/aot_pace.c */
+====
+uint64_t s_apu_pending_master = 0;  /* TLK: shared with runner/aot_pace.c */
+static uint64_t s_tlk_apu_rem;  /* master x 1025280, not yet whole SPC cycles */
+>>>>
+
+@@ apu-conversion-remainder-use
+<<<<
+        static uint64_t s_tlk_apu_rem;  /* master x 1025280, not yet whole cycles */
+        s_tlk_apu_rem += s_apu_pending_master * 1025280ull;
+====
+        s_tlk_apu_rem += s_apu_pending_master * 1025280ull;
+>>>>
+
+@@ apu-conversion-remainder-record
+<<<<
+    BridgeDynamicValue dynamic_values[64];
+} InterpBridgeRbState;
+====
+    BridgeDynamicValue dynamic_values[64];
+    uint64_t apu_remainder;
+} InterpBridgeRbState;
+_Static_assert(sizeof(InterpBridgeRbState) <= 1024, "bridge rollback storage overflow");
+>>>>
+
+@@ apu-conversion-remainder-save
+<<<<
+    s->apu_pending_master     = s_apu_pending_master;
+====
+    s->apu_pending_master     = s_apu_pending_master;
+    s->apu_remainder          = s_tlk_apu_rem;
+>>>>
+
+@@ apu-conversion-remainder-load
+<<<<
+    s_apu_pending_master          = s->apu_pending_master;
+====
+    s_apu_pending_master          = s->apu_pending_master;
+    s_tlk_apu_rem                  = s->apu_remainder;
+>>>>

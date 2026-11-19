@@ -1,0 +1,17 @@
+file: sdl_main.c
+
+@@ lizard-attack-voice-declaration
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_lizard_audio.h"
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-lizard-attack-voice-for-both-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc1650e,TlkLizardAttackVoice);
+        RtlRunFrame(pad);
+>>>>

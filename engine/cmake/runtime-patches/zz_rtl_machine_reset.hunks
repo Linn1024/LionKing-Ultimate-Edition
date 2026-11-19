@@ -1,0 +1,25 @@
+# Both cold SnesInit and soft RtlReset enter the same pacing-reset function.
+file: runner/src/common_rtl.c
+
+@@ clear-bridge-new-machine-timing
+<<<<
+void rtl_reset_host_pacing(void) {
+====
+void tlk_bridge_reset_apu_timing(void);
+void rtl_reset_host_pacing(void) {
+  tlk_bridge_reset_apu_timing();
+>>>>
+
+@@ fresh-machine-audio-delivery
+<<<<
+static void rtl_render_wait(int16 *out, int frames) {
+====
+/* A new machine has no previous sound to interpolate or fade. Visible state
+ * loads use their separately saved consumer history instead. */
+void rtl_reset_audio_for_new_machine(void) {
+  rtl_reset_audio_state();
+  s_render_hold_l = s_render_hold_r = 0;
+}
+
+static void rtl_render_wait(int16 *out, int frames) {
+>>>>

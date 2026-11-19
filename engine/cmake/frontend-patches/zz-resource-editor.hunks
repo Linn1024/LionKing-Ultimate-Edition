@@ -1,0 +1,70 @@
+file: runner/sdl_main.c
+
+@@ include-fallback-resource-editor
+<<<<
+/* Draw once against the selected canvas's native-size UI region. */
+====
+#include "tlk_resource_editor_sdl.h"
+
+/* Draw once against the selected canvas's native-size UI region. */
+>>>>
+
+@@ render-resource-tree-in-plain-sdl
+<<<<
+    if (s_menu_open && !s_menu_gl)
+        recomp_runtime_ui_render_argb8888(s_ui, s_screen, kWidth, kHeight, kWidth * 4);
+====
+    if (s_menu_open && !s_menu_gl) {
+        if (s_about == 2) DrawResourceEditor();
+        else recomp_runtime_ui_render_argb8888(s_ui, s_screen, kWidth, kHeight, kWidth * 4);
+    }
+>>>>
+
+@@ enable-resource-category
+<<<<
+    case R_RESOURCES: return s_menu_gl;
+====
+    case R_RESOURCES: return 1;
+>>>>
+
+@@ initialize-fallback-category
+<<<<
+    case R_RESOURCES: s_about = 2; TlkResourcesRevert(); return 0;
+====
+    case R_RESOURCES: s_about = 2; TlkResourcesRevert(); if (!s_menu_gl) ResourceBegin(); return 0;
+>>>>
+
+@@ keyboard-resource-editor
+<<<<
+        if (s_about == 2) {
+            if (k == SDLK_ESCAPE) { s_about = 0; TlkResourcesRevert(); }
+====
+        if (s_about == 2) {
+            if (!s_menu_gl) { ResourceKey(k,ke->repeat); return; }
+            if (k == SDLK_ESCAPE) { s_about = 0; TlkResourcesRevert(); }
+>>>>
+
+@@ resource-shortcut-on-either-presenter
+<<<<
+            if (s_menu_gl) { OpenMenu(); s_about = 2; TlkResourcesRevert(); }
+            else Toast("Resource tree needs OpenGL 3.3");
+====
+            OpenMenu(); s_about = 2; TlkResourcesRevert();
+            if (!s_menu_gl) ResourceBegin();
+>>>>
+
+@@ gamepad-resource-editor
+<<<<
+    if (s_about == 2 && b != SDL_GAMEPAD_BUTTON_START && b != SDL_GAMEPAD_BUTTON_GUIDE) {
+====
+    if (s_about == 2 && !s_menu_gl) { ResourcePad(b); return; }
+    if (s_about == 2 && b != SDL_GAMEPAD_BUTTON_START && b != SDL_GAMEPAD_BUTTON_GUIDE) {
+>>>>
+
+@@ mouse-resource-editor
+<<<<
+    if (s_menu_open) TlkMenuImguiEvent(ev);   /* mouse and window state for ImGui */
+====
+    if (s_menu_open) TlkMenuImguiEvent(ev);   /* mouse and window state for ImGui */
+    if (s_menu_open && !s_menu_gl && s_about == 2 && ResourceMouse(ev)) return;
+>>>>

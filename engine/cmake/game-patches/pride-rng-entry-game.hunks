@@ -1,0 +1,28 @@
+file: runner/tlk_game.c
+
+@@ rng-entry-game-include
+<<<<
+#include "tlk_streaming_top.h"
+====
+#include "tlk_streaming_top.h"
+#include "tlk_rng_runtime.h"
+#include "native_adapters.h"
+#ifndef TLK_RNG_ENTRY_AOT_AVAILABLE
+#define TLK_RNG_ENTRY_AOT_AVAILABLE 0
+#endif
+#ifdef TLK_RNG_ENTRY_STAGED_AVAILABLE
+#undef TLK_RNG_ENTRY_AOT_AVAILABLE
+#define TLK_RNG_ENTRY_AOT_AVAILABLE 1
+#endif
+>>>>
+
+@@ install-original-rng-boundary
+<<<<
+static void TlkRunOneFrame(void) { TlkCameraInstall(); TlkLayoutInstall(); TlkLeavesInstall(); TlkTerrainInstall(); TlkRoarInstall(); TlkSpawnInitInstall(); TlkReactivationInstall(); TlkHitboxesInstall(); TlkCeilingInstall(); TlkStreamingTopInstall(); aot_pace_diag_frame(); snes_beam_frame_driver_run_frame(); }
+====
+static void TlkRunOneFrame(void) { TlkCameraInstall(); TlkLayoutInstall(); TlkLeavesInstall(); TlkTerrainInstall(); TlkRoarInstall(); TlkSpawnInitInstall(); TlkReactivationInstall(); TlkHitboxesInstall(); TlkCeilingInstall(); TlkStreamingTopInstall();
+#if TLK_RNG_ENTRY_AOT_AVAILABLE
+    TlkRngRuntimeInstall();
+#endif
+    aot_pace_diag_frame(); snes_beam_frame_driver_run_frame(); }
+>>>>

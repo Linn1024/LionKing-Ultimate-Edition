@@ -1,0 +1,8 @@
+file: runner/tlk_resources.c
+
+@@ title-navigation-parent-after-standalone-death-and-rng-nodes
+<<<<
+    {"gameplay.menus.title_navigation", "Title menu navigation", 119,
+====
+    {"gameplay.menus.title_navigation", "Title menu navigation", 121,
+>>>>

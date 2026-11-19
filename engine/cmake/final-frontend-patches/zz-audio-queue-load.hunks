@@ -1,0 +1,23 @@
+file: sdl_main.c
+
+@@ suspend-output-before-synchronous-live-load
+<<<<
+static int LoadStateLive(const char *path) {
+    uint32_t hf = 0;
+    if (!ContinueLifecycleLoad(path, &hf)) return 0;
+====
+static int LoadStateLive(const char *path) {
+    uint32_t hf = 0;
+    AudioDeviceReset();
+    if (!ContinueLifecycleLoad(path, &hf)) return 0;
+>>>>
+
+@@ suspend-output-before-synchronous-scripted-load
+<<<<
+        if (load_at_path && frame == load_at) {
+            uint32_t hf = 0;
+====
+        if (load_at_path && frame == load_at) {
+            uint32_t hf = 0;
+            AudioDeviceReset();
+>>>>

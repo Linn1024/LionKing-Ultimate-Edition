@@ -1,0 +1,9 @@
+"""Actual Graveyard bone audio leaf Apply, persistence and appropriate level restart."""
+from pathlib import Path
+template=Path(__file__).with_name('verify_cant_wait581_audio_ui.py')
+s=template.read_text().replace('build/cant-wait573-route-audio/report.json','build/graveyard601-native-music/report.json').replace('build/cant-wait579/build-report.json','build/graveyard599/build-report.json').replace('build/cant-wait581-audio-ui','build/graveyard607-audio-ui').replace("r['commands']['route']","r['commands']['play']")
+s=s.replace('audio.effects.world.cant_wait.ostrich_steps','audio.effects.world.graveyard.bone_shake').replace('audio.effects.world.cant_wait.ostrich_jump','audio.effects.world.graveyard.vulture')
+s=s.replace("i=cmd.index(flag);del cmd[i:i+n]","if flag in cmd:\n        i=cmd.index(flag);del cmd[i:i+n]")
+s=s.replace("r['field']>=1900", "r['field']>=1580").replace('0xc003b9','0xc003eb').replace("after['level']==1","after['level']==2")
+s=s.replace('paths=[Path(__file__),reference,build]','paths=[Path(__file__),template,reference,build]')
+exec(compile(s,str(template),'exec'))

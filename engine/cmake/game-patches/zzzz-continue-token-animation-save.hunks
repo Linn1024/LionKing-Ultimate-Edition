@@ -1,0 +1,34 @@
+file: runner/tlk_savestate.c
+
+@@ bind-continue-token-animation-in-unused-width-bit21
+<<<<
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.porcupine_attack")) flags|=0x00400000u;
+====
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.porcupine_attack")) flags|=0x00400000u;
+    if (TlkResourcesUseMd("gameplay.levels.pride_lands.continue_token_animation")) flags|=0x00200000u;
+>>>>
+
+@@ retain13-bit-width-with-continue-token-animation
+<<<<
+    if (flags&(1u|0x00800000u)) flags|=((uint32_t)TlkCameraViewWidth()&16383u)<<8;
+====
+    if (flags&(1u|0x00800000u)) flags|=((uint32_t)TlkCameraViewWidth()&8191u)<<8;
+>>>>
+
+@@ reject-legacy-unknown-continue-token-animation
+<<<<
+    if (ok && h.version==1u && h.host_frame && (current&0x7fc000ffu)) {
+====
+    if (ok && h.version==1u && h.host_frame && (current&0x7fe000ffu)) {
+>>>>
+
+@@ reject-continue-token-animation-before-width-or-guest
+<<<<
+        } else if ((sources^current)&0x003fff00u) {
+            snprintf(load_error,sizeof load_error,"State needs a %u-pixel gameplay viewport",(unsigned)((sources>>8)&16383u));ok=0;
+====
+        } else if ((sources^current)&0x00200000u) {
+            snprintf(load_error,sizeof load_error,"State Continue-token animation source differs; match it in F12");ok=0;
+        } else if ((sources^current)&0x001fff00u) {
+            snprintf(load_error,sizeof load_error,"State needs a %u-pixel gameplay viewport",(unsigned)((sources>>8)&8191u));ok=0;
+>>>>

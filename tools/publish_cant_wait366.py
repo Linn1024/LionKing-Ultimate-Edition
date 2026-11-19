@@ -1,0 +1,16 @@
+"""Publish live second-level MD background with existing installed scene data."""
+from pathlib import Path
+template366=Path(__file__).with_name('publish_pride_porcupine331.py')
+source=template366.read_text()
+source=source.replace("build=ROOT/'build/pride-porcupine327/build-report.json'","build=ROOT/'build/cant-wait362/build-report.json'")
+source=source.replace('pride-porcupine329-baseline','cant-wait363').replace('pride-porcupine330-window','cant-wait364')
+source=source.replace("previous=ROOT/'dist/installed-preview319'","previous=ROOT/'dist/installed-preview356'")
+source=source.replace("out=ROOT/'dist/installed-preview327'","out=ROOT/'dist/installed-preview362'")
+source=source.replace("info['pride_porcupine_voice_scope']='Selected MD FM105 at original counter28 seam under either attack-contact timing source; native sound follows selected gameplay cue. Existing native cue interception retained; no new guest writes or save state.'","info['cant_wait_background_scope']='Original MD plane B: three scrolling regions, camera-wrap input and dynamic palette; native foreground/gameplay remain. Existing scene-cache v1 plus hydrated immutable recipe, no reinstall. Palette and artwork choices independent.';info['wide_history_schema']=4")
+source=source.replace(".replace('preview319','preview327')",".replace('preview356','preview362')")
+source=source.replace('Selected MD porcupine attack sound now uses original counter28 timing,\\nindependently of attack contact timing. Installed assets/settings are retained.','Cant Wait to Be King now uses the original MD background scrolling and\\nchanging palette when selected. Foreground/gameplay remain native. No reinstall.')
+source=source.replace("before.count('dist/installed-preview319')","before.count('dist/installed-preview356')")
+source=source.replace("before.replace('dist/installed-preview319','dist/installed-preview327')","before.replace('dist/installed-preview356','dist/installed-preview362')")
+source=source.replace('pride-porcupine331-publication','cant-wait366-publication').replace('pride-porcupine326-baseline','cant-wait361-baseline')
+source=source.replace('paths=[Path(__file__),build,','paths=[Path(__file__),template366,ROOT/\'build/cant-wait365-ride/report.json\',build,')
+exec(compile(source,str(template366),'exec'))

@@ -1,0 +1,33 @@
+file: sdl_main.c
+
+@@ include-reviewed-continue-token-duration-boundary
+<<<<
+static SDL_AudioStream *astream;
+====
+#include "tlk_continue_token_timing.h"
+static SDL_AudioStream *astream;
+>>>>
+
+@@ install-continue-token-duration-for-both-modes
+<<<<
+        RtlRunFrame(pad);
+====
+        interp_bridge_add_pre_opcode_hook(0xc0ad54,TlkContinueTokenTimingPoint);
+        RtlRunFrame(pad);
+>>>>
+
+@@ initialize-continue-token-timing-source
+<<<<
+    TlkLayoutProfileChanged();
+====
+    TlkLayoutProfileChanged();
+    TlkContinueTokenTimingChanged();
+>>>>
+
+@@ restart-level-for-continue-token-timing-change
+<<<<
+    restart|=TlkLayoutProfileChanged();
+====
+    restart|=TlkLayoutProfileChanged();
+    restart|=TlkContinueTokenTimingChanged();
+>>>>
