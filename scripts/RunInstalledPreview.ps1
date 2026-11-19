@@ -29,7 +29,7 @@ try {
         throw 'State capture needs a SaveAt frame between 1 and Frames.'
     }
     if ($PracticeLevel -ge 0 -and $InputTape) { throw 'Practice level selection uses its own controller macro. Use Play.cmd or Play Installed Preview.cmd for input-tape playback.' }
-    $package = Join-Path $projectRoot 'dist/installed-preview6993'
+    $package = Join-Path $projectRoot 'dist/installed-preview7002'
     $player = Join-Path $package 'LionKing.exe'
     $packageInfo = Join-Path $package 'package.json'
     if (!(Test-Path -LiteralPath $packageInfo -PathType Leaf)) { throw 'Build/package the installed development preview first. See docs/pride-installed-sprites.md.' }

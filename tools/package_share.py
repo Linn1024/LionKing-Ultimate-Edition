@@ -16,9 +16,12 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=ROOT/'build/share-preview6996')
+    parser.add_argument('--output', type=Path)
+    parser.add_argument('--version', default='preview7004')
     args = parser.parse_args()
-    out = args.output.resolve()
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', args.version):
+        parser.error('Use a simple release version without path separators.')
+    out = (args.output or ROOT/'build'/('share-'+args.version)).resolve()
     if not out.is_relative_to((ROOT/'build').resolve()):
         parser.error('Put release staging under ignored build/.')
     out.mkdir(parents=True, exist_ok=False)
@@ -79,7 +82,7 @@ def main():
     # A package manifest lists every shipped file; development package provenance
     # remains separate from the file-integrity manifest for this public ZIP.
     (stage/'FILES.sha256').write_text(''.join(f'{sha}  {name}\n' for name, sha in sorted(files.items())))
-    archive = out/'LionKing-Ultimate-Edition-Windows-preview6996.zip'
+    archive = out/('LionKing-Ultimate-Edition-Windows-'+args.version+'.zip')
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for path in sorted(stage.rglob('*')):
             if path.is_file():

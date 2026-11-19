@@ -294,8 +294,6 @@ static void DrawResources(int *about) {
         ImGui::SameLine();
         if (ImGui::Button("SNES defaults")) TlkResourcesDefaults();
         ImGui::SameLine();
-        if (ImGui::Button("Mixed graphics")) TlkResourcesGraphicsPreset();
-        ImGui::SameLine();
         if (ImGui::Button("Available MD")) TlkResourcesMdPreset();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Select available MD choices; unavailable choices stay SNES. Apply saves the profile and restarts when needed.");
         ImGui::SameLine();

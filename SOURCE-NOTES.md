@@ -1,6 +1,6 @@
 # Source snapshot and credits
 
-This is the maintained project source snapshot accompanying preview6996.
+This is the maintained project source snapshot accompanying preview7004.
 The working Windows binary has been built incrementally from reviewed local
 objects. A byte-for-byte clean rebuild from this snapshot is not yet certified;
 use the Windows ZIP in Releases to play. Some development tools reference local

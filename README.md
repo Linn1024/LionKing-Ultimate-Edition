@@ -1,6 +1,6 @@
 # Lion King: Ultimate Edition — Windows preview
 
-[Download the Windows preview](https://github.com/Linn1024/LionKing-Ultimate-Edition/releases/tag/preview6996)
+[Download the Windows preview](https://github.com/Linn1024/LionKing-Ultimate-Edition/releases)
 or read the [video script](VIDEO-SCRIPT.md).
 
 Mix SNES artwork with Genesis music and gameplay, or choose resources individually.

@@ -633,7 +633,6 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
             ImGui::Separator();ImGui::TextUnformatted("Built-in starting points");
             if(ImGui::MenuItem("All SNES")){TlkResourcesDefaults();presets.loaded.clear();pictures.Clear();}
             if(ImGui::MenuItem("Available Genesis")){TlkResourcesMdPreset();presets.loaded.clear();pictures.Clear();}
-            if(ImGui::MenuItem("Mixed graphics")){TlkResourcesGraphicsPreset();presets.loaded.clear();pictures.Clear();}
             if(ImGui::MenuItem("SNES artwork / Genesis gameplay & sound")) {
                 presets.loaded.clear();
                 TlkResourcesMdPreset();int gfx=TlkResourcesFind("graphics");TlkResourcesSet(gfx,TLK_SOURCE_SNES);
