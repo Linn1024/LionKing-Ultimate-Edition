@@ -142,17 +142,14 @@ static void DrawAbout(int *about) {
         ImGui::TextUnformatted("About");
         ImGui::PopStyleColor();
         ImGui::Separator();
-        ImGui::TextWrapped("When I was around 8 years old, my family and I would gather around the kitchen TV to "
-                           "try to beat this game. We still love it, and it's an important part of our family "
-                           "lore.");
-        ImGui::TextWrapped("This effort is a tribute: to my family, to my kid self, and to the community, which "
-                           "I'm sure will enjoy it.");
-        ImGui::TextUnformatted("Alejandro AR");
-        ImGui::SameLine();
-        ImGui::TextLinkOpenURL("kinduff.com", "https://kinduff.com");
-        ImGui::TextDisabled("Source:");
-        ImGui::SameLine();
-        ImGui::TextLinkOpenURL("github.com/kinduff/TLKRecomp", "https://github.com/kinduff/TLKRecomp");
+        ImGui::TextUnformatted("The Lion King: Ultimate Edition by Linn1024");
+        ImGui::TextWrapped("Mix SNES and Genesis artwork, colours, music, sound effects and gameplay.");
+        ImGui::TextLinkOpenURL("Ultimate Edition source", "https://github.com/Linn1024/LionKing-Ultimate-Edition");
+        ImGui::Separator();
+        ImGui::TextWrapped("Based on TLKRecomp by Alejandro AR (kinduff).");
+        ImGui::TextLinkOpenURL("Upstream TLKRecomp", "https://github.com/kinduff/TLKRecomp");
+        ImGui::SameLine();ImGui::TextLinkOpenURL("kinduff.com (upstream author)", "https://kinduff.com");
+        ImGui::TextWrapped("Runtime components: snesrecomp and recomp-ui. Original game: Disney / Virgin Interactive and its original developers. See the included component licenses.");
         ImGui::Separator();
         ImGui::AlignTextToFramePadding();
         ImGui::TextDisabled("Esc/B  Close");

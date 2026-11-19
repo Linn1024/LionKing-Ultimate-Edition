@@ -138,7 +138,7 @@ static uint32_t s_screen[kWidth * kHeight];
 
 #define NTSC_FPS (21477272.0 / 357366.0) /* 60.0988 */
 
-/* ── PNG writer (stored deflate), same as headless_main.c ───────────────── */
+/* РІвЂќР‚РІвЂќР‚ PNG writer (stored deflate), same as headless_main.c РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static uint32_t s_crc_table[256];
 static void CrcInit(void) {
     for (uint32_t n = 0; n < 256; n++) {
@@ -201,7 +201,7 @@ static int WritePng(const char *path, const uint8_t *px, int w, int h, int pitch
     return ok;
 }
 
-/* ── Input tape (same semantics as tlk_headless) ────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Input tape (same semantics as tlk_headless) РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static uint16_t *s_tape;
 static size_t s_tape_frames;
 static int s_polled;
@@ -258,7 +258,7 @@ static void PollHook(CpuState *cpu, uint32_t pc24) {
 extern void (*g_tlk_aot_pad_read_hook)(void);
 static void PollHookCompiled(void) { PollHook(&g_cpu, 0xC0A07C); }
 
-/* ── Config ─────────────────────────────────────────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Config РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 /* Runtime pad bits: 0 B, 1 Y, 2 Select, 3 Start, 4 Up, 5 Down, 6 Left,
  * 7 Right, 8 A, 9 X, 10 L, 11 R. Binding 12 is turbo (hold to fast-forward),
  * not a pad bit. */
@@ -461,7 +461,7 @@ static void SlotPath(int slot, char *out, size_t n) {
     SidePath(name, out, n);
 }
 
-/* ── Overlay: 8x8 text in the 256x224 logical space ────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Overlay: 8x8 text in the 256x224 logical space РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static char s_toast[256];
 static uint64_t s_toast_until;
 
@@ -586,7 +586,7 @@ static void DrawToast(void) {
     for (int line=0;line<count;line++) DrawText(8,y+4+line*10,lines[line]);
 }
 
-/* ── No ROM: the prompt in the game window ─────────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ No ROM: the prompt in the game window РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static int s_rom_prompt;            /* Present() shows the ROM prompt instead of the game */
 static const char *s_rom_note[2];   /* up to two lines under it (wrong file, no dialog) */
 
@@ -697,7 +697,7 @@ static void DrawRomPrompt(void) {
     DrawCentered(180, "Esc quits.", 1);
 }
 
-/* ── Practice mode ──────────────────────────────────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Practice mode РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 /* Reads WRAM only, never writes it, so emulation and recordings are the same
  * with it on or off. Timing follows SBDWolf's practice hack (timer.asm): the
  * level timer starts when the fade-in after a level load ends, counts frames
@@ -1012,7 +1012,7 @@ static void PrEnable(void) {
     pr.st = PR_IDLE;
 }
 
-/* ── Presenting ─────────────────────────────────────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Presenting РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static void ApplyVideoConfig(void) { TlkVideoConfig(s_shader, s_aspect, s_smooth); }
 
 /* sw x sh is the presented picture, native or HD; the maths runs on the
@@ -1344,7 +1344,7 @@ static int OpenVideo(void) {
     return 1;
 }
 
-/* ── Live input ─────────────────────────────────────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Live input РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static uint16_t s_kbd_pad;
 static SDL_Gamepad *s_pad;
 static int s_pad_hold;   /* after the menu closes: ignore the pad until all of it is released */
@@ -1391,7 +1391,7 @@ static int TurboHeld(void) {
     return s_turbo_held || (s_pad && !s_pad_hold && SDL_GetGamepadButton(s_pad, s_pad_btn[kTurbo]));
 }
 
-/* ── Settings menu: recomp-ui's runtime menu ───────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ Settings menu: recomp-ui's runtime menu РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 /* The rows, in order; sections appear in first-use order. Every change is
  * applied at once and saved to the ini (the menu calls MenuSave after it). */
 enum {
@@ -1415,8 +1415,8 @@ static char s_bind_label[kBindings][64];
 static char s_start_label[48];
 /* About: the first row opens tlk_menu_imgui.cpp's About window (OpenGL menu
  * only); the author and source rows open their page in the browser. */
-#define AUTHOR_URL "https://kinduff.com"
-#define SOURCE_URL "https://github.com/kinduff/TLKRecomp"
+#define AUTHOR_URL "https://github.com/Linn1024"
+#define SOURCE_URL "https://github.com/Linn1024/LionKing-Ultimate-Edition"
 
 #define MENU_ROW(key, sec, label, desc, type, lo, hi, step, ch, n) \
     { key, sec, label, desc, RECOMP_RUNTIME_UI_##type, lo, hi, step, ch, n, NULL }
@@ -1477,12 +1477,12 @@ static RecompRuntimeUiItem s_rows[R_COUNT] = {
                           "Back to the game.", ACTION, 0, 0, 0, NULL, 0),
     [R_QUIT] = MENU_ROW(RECOMP_RUNTIME_UI_KEY_QUIT, "System", "Quit",
                         "Close the game. Press twice.", ACTION, 0, 0, 0, NULL, 0),
-    [R_ABOUT] = MENU_ROW("tlk.about", "About", "Why this port exists",
-                         "Enter/A to read.", ACTION, 0, 0, 0, NULL, 0),
-    [R_AUTHOR] = MENU_ROW("tlk.author", "About", "By Alejandro AR",
-                          "kinduff.com", ACTION, 0, 0, 0, NULL, 0),
-    [R_SOURCE] = MENU_ROW("tlk.source", "About", "Source code",
-                          "github.com/kinduff/TLKRecomp", ACTION, 0, 0, 0, NULL, 0),
+    [R_ABOUT] = MENU_ROW("tlk.about", "About", "About Ultimate Edition",
+                         "Edition and upstream credits.", ACTION, 0, 0, 0, NULL, 0),
+    [R_AUTHOR] = MENU_ROW("tlk.author", "About", "Ultimate Edition by Linn1024",
+                          "github.com/Linn1024", ACTION, 0, 0, 0, NULL, 0),
+    [R_SOURCE] = MENU_ROW("tlk.source", "About", "Ultimate Edition source",
+                          "github.com/Linn1024/LionKing-Ultimate-Edition", ACTION, 0, 0, 0, NULL, 0),
     [R_RESOLUTION] = MENU_ROW("tlk.window_size", "Display", "Custom window size",
                             "Width x height, for example 1600 x 900. Fullscreen uses your monitor. Widescreen controls how much of the level is shown.", TEXT, 0, 0, 0, NULL, 0),
     [R_RESOURCES] = MENU_ROW("tlk.resources", "Resources", "Version resource tree",
@@ -1888,7 +1888,7 @@ static void HandleEvent(const SDL_Event *ev) {
     }
 }
 
-/* ── --selftest-remap: drive the menu with synthetic SDL events ─────────── */
+/* РІвЂќР‚РІвЂќР‚ --selftest-remap: drive the menu with synthetic SDL events РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static int s_st_fail;
 static void StCheck(int ok, const char *what) {
     printf("remap_selftest: %s %s\n", ok ? "ok  " : "FAIL", what);
@@ -2112,7 +2112,7 @@ static int RemapSelfTest(void) {
     return s_st_fail ? 1 : 0;
 }
 
-/* ── WAV recorder ───────────────────────────────────────────────────────── */
+/* РІвЂќР‚РІвЂќР‚ WAV recorder РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
 static FILE *s_wav;
 static uint32_t s_wav_frames, s_wav_limit;
 static void Le32(FILE *f, uint32_t v) { uint8_t b[4] = { (uint8_t)v, (uint8_t)(v >> 8), (uint8_t)(v >> 16), (uint8_t)(v >> 24) }; fwrite(b, 1, 4, f); }

@@ -66,6 +66,7 @@ def main():
     copy(package/'LionKing.exe', 'dist/LionKing.exe')
     copy(ROOT/'tools/record_video.py', 'tools/record_video.py')
     copy(ROOT/'docs/SHARING.md', 'README.md')
+    copy(ROOT/'CREDITS.md', 'CREDITS.md')
     copy(ROOT/'docs/VIDEO-SCRIPT.md', 'VIDEO-SCRIPT.md')
     notice = stage/relative/'LICENSE-NOTES.txt'
     notice.write_text('Unofficial noncommercial development preview. Supply your own SNES USA and Mega Drive World ROMs.\n'

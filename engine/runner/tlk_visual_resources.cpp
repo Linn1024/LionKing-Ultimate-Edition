@@ -788,7 +788,13 @@ extern "C" int TlkMainSettingsOpen(SDL_Window *parent,RecompRuntimeUi *ui,void (
             }
             ImGui::EndDisabled();ImGui::TextWrapped("%s",description?description:"");ImGui::Separator();ImGui::PopID();
         }
-        if(page==4)ImGui::TextWrapped("This edition combines SNES and Genesis artwork, sound and gameplay choices. Built on TLKRecomp, snesrecomp and recomp-ui. Original game by Westwood Studios and Virgin Interactive.");
+        if(page==4){
+            ImGui::TextWrapped("Ultimate Edition combines SNES and Genesis artwork, sound and gameplay choices.");
+            ImGui::TextColored(gold,"Based on TLKRecomp by Alejandro AR (kinduff).");
+            ImGui::TextLinkOpenURL("Upstream TLKRecomp", "https://github.com/kinduff/TLKRecomp");
+            ImGui::SameLine();ImGui::TextLinkOpenURL("kinduff.com (upstream author)", "https://kinduff.com");
+            ImGui::TextWrapped("Runtime components: snesrecomp and recomp-ui. Original game: Disney / Virgin Interactive and its original developers. Component copyright and license notices are included with the game.");
+        }
         ImGui::PopTextWrapPos();ImGui::EndChild();
         if(!notice.empty())ImGui::TextWrapped("%s",notice.c_str());else if(ui->status_frames)ImGui::TextColored(gold,"%s",ui->status);else ImGui::TextColored(muted,"Esc: return to the game");
         if(ImGui::Button("Resume",ImVec2(180,40)))live=false;

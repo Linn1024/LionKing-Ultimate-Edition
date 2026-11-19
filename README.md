@@ -1,9 +1,12 @@
-# Lion King: Ultimate Edition — Windows preview
+# Lion King: Ultimate Edition РІР‚вЂќ Windows preview
 
 [Download the Windows preview](https://github.com/Linn1024/LionKing-Ultimate-Edition/releases)
 or read the [video script](VIDEO-SCRIPT.md).
 
 Mix SNES artwork with Genesis music and gameplay, or choose resources individually.
+**Ultimate Edition by [Linn1024](https://github.com/Linn1024), based on
+[TLKRecomp](https://github.com/kinduff/TLKRecomp) by Alejandro AR (kinduff) and contributors.**
+See [credits](https://github.com/Linn1024/LionKing-Ultimate-Edition/blob/main/CREDITS.md).
 This is a development preview: visual and performance issues remain, especially
 at very large window sizes. It is an unofficial, noncommercial fan project.
 

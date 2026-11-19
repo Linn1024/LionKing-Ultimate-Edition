@@ -1,12 +1,14 @@
 # Source snapshot and credits
 
-This is the maintained project source snapshot accompanying preview7004.
+This is the maintained project source snapshot accompanying preview7009.
 The working Windows binary has been built incrementally from reviewed local
 objects. A byte-for-byte clean rebuild from this snapshot is not yet certified;
 use the Windows ZIP in Releases to play. Some development tools reference local
 ignored research history; those tools are not required by the installer.
 
-Based on [TLKRecomp by kinduff and contributors](https://github.com/kinduff/TLKRecomp).
+Ultimate Edition by [Linn1024](https://github.com/Linn1024).
+Based on [TLKRecomp by Alejandro AR (kinduff) and contributors](https://github.com/kinduff/TLKRecomp).
+See [CREDITS.md](CREDITS.md) for edition and upstream credits.
 Port source license: engine/LICENSE. Framework URLs/revisions: dependencies.json.
 Fetch those frameworks into engine/snesrecomp and engine/recomp-ui before trying
 scripts/Build.ps1. Frameworks must be kept unmodified. The generator takes your
