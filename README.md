@@ -1,5 +1,8 @@
 # Lion King: Your Edition — Windows preview
 
+[Download the Windows preview](https://github.com/Linn1024/LionKing-Your-Edition/releases/tag/preview6996)
+or read the [video script](VIDEO-SCRIPT.md).
+
 Mix SNES artwork with Genesis music and gameplay, or choose resources individually.
 This is a development preview: visual and performance issues remain, especially
 at very large window sizes. It is an unofficial, noncommercial fan project.
