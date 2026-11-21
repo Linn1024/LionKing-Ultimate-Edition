@@ -200,7 +200,7 @@ void TlkMdSoundRestart(void) {
     command_count=0;TlkMdSoundClearOutput();recording=ready;
 }
 void TlkMdSoundCommand(unsigned selector,unsigned value) {
-    if (!ready || selector>29 || selector==24 || command_count>=QUEUE || (selector>=20 && value!=(selector==23?113:125))) return;
+    if (!ready || selector>31 || selector==24 || command_count>=QUEUE || (selector>=20 && value!=(selector==23?113:125))) return;
     commands[command_count].selector=selector;commands[command_count++].value=value&65535;
     if (command_trace) { fprintf(command_trace,"%lu,%u,%u\n",command_serial++,selector,value&65535);fflush(command_trace); }
 }
@@ -222,6 +222,7 @@ void TlkMdSoundCliffSample(void){TlkMdSoundCommand(25,125);}
 void TlkMdSoundCliffStop(void){TlkMdSoundCommand(26,125);}
 void TlkMdSoundExileExitSample(unsigned sample){if(sample<2)TlkMdSoundCommand(27+sample,125);}
 void TlkMdSoundOpeningTimonSample(void){TlkMdSoundCommand(29,125);}
+void TlkMdSoundDestinySpeechSample(unsigned sample){if(sample<2)TlkMdSoundCommand(30+sample,125);}
 static void emit_word(unsigned *at,unsigned word) {
     ram[(*at)++]=(uint8_t)word;ram[(*at)++]=(uint8_t)(word>>8);
 }
@@ -241,8 +242,8 @@ static int produce(void) {
             emit_word(&at,0x4eb9);emit_word(&at,0x002d);emit_word(&at,0x0000);continue;
         }
         if(selector>=20){
-            unsigned source=selector==29?0x2d191e:selector==28?0x2e8000:selector==27?0x2e0000:selector>=25?0x2d4ab8:selector==23?0x2f2d6a:selector==21?0x2dc756:0x2d8000;
-            unsigned size=selector==29?0x319a:selector==28?0x3a08:selector==27?0x2bbe:selector==26?2:selector==25?0x17c2:selector==23?0x51c3:selector==22?2:selector==21?0x2922:0x4756;
+            unsigned source=selector==31?0x2eba08:selector==30?0x2e2bbe:selector==29?0x2d191e:selector==28?0x2e8000:selector==27?0x2e0000:selector>=25?0x2d4ab8:selector==23?0x2f2d6a:selector==21?0x2dc756:0x2d8000;
+            unsigned size=selector==31?0x3d64:selector==30?0x4a88:selector==29?0x319a:selector==28?0x3a08:selector==27?0x2bbe:selector==26?2:selector==25?0x17c2:selector==23?0x51c3:selector==22?2:selector==21?0x2922:0x4756;
             emit_word(&at,0x203c);emit_word(&at,source>>16);emit_word(&at,source&65535);
             emit_word(&at,0x243c);emit_word(&at,0);emit_word(&at,size);
             emit_word(&at,0x323c);emit_word(&at,selector==23?113:125);
@@ -307,7 +308,7 @@ int TlkMdSoundValidateState(const uint8_t *data,size_t size) {
     for(unsigned i=0;i<count;i++) {
         size_t at=SOUND_HEADER+RING*4+i*8;
         unsigned selector=TlkGet32(data+at),value=TlkGet32(data+at+4);
-        if(selector>29 || (selector!=24 && value>65535) ||
+        if(selector>31 || (selector!=24 && value>65535) ||
            (selector>=20 && selector!=24 && value!=(selector==23?113:125)))return 0;
     }
     uint8_t hash[32];return state_hash(data,size,hash) && !memcmp(hash,data+88,32);

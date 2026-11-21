@@ -30,7 +30,8 @@ static uint32_t history_graphics(void) {
         "graphics.sprites.effects.defeat_puff.frames","graphics.sprites.effects.defeat_puff.palette",
         "graphics.sprites.checkpoints.frames","graphics.sprites.checkpoints.palette",
         "graphics.sprites.enemies.chameleons.frames","graphics.sprites.enemies.chameleons.palette",
-        "graphics.sprites.enemies.porcupines.frames","graphics.sprites.enemies.porcupines.palette"};
+        "graphics.sprites.enemies.porcupines.frames","graphics.sprites.enemies.porcupines.palette",
+        "graphics.scenery.foreground.palette","graphics.scenery.background.palette"};
     uint32_t flags=0;for(unsigned n=0;n<sizeof ids/sizeof *ids;n++)if(TlkResourcesUseMd(ids[n]))flags|=1u<<n;
     return flags;
 }

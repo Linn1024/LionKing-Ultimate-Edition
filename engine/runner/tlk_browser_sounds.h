@@ -74,8 +74,8 @@ static const BrowserSound browser_sounds[]={
  {"audio.effects.world.lava_bubbles",7,15,0,0},
  {"audio.effects.world.adult_hyenas.leap",8,30,0,0},
  {"audio.effects.world.simbas_exile.exit",4,-2,-4,0},
- {"audio.effects.interlevel.pride_lands",0,-1,-2,0},
- {"audio.effects.interlevel.stampede",3,-1,-3,0},
+ {"audio.effects.interlevel.pride_lands",0,-2,-2,0},
+ {"audio.effects.interlevel.stampede",3,-2,-3,0},
  {"audio.effects.bonus.result_voice",10,7,-5,0},
  {"audio.voices.ending",9,-2,-2,0},{"audio.voices.opening_timon",14,256,-1,0},
  {"audio.effects.ending_title",9,-1,2,165},
@@ -95,7 +95,8 @@ static const BrowserSound browser_sounds[]={
  {"audio.effects.world.bonus_bug",6,19,2,114,"Adult Simba"},
  {"audio.effects.world.continue_token",6,19,2,114,"Adult Simba"},
  {"audio.effects.world.simbas_exile.exit",4,-2,-4,1,"Second voice"},
- {"audio.effects.interlevel.pride_lands",0,-1,-2,1,"Second voice"},
+ {"audio.effects.interlevel.pride_lands",0,-2,-2,1,"Second voice"},
  {"audio.voices.ending",9,-2,-2,1,"Second speech"},
- {"audio.effects.bonus.toss_rewards",10,8,2,98,"Health reward"}
+ {"audio.effects.bonus.toss_rewards",10,8,2,98,"Health reward"},
+ {"audio.voices.mufasa_destiny",6,257,-7,0}
 };

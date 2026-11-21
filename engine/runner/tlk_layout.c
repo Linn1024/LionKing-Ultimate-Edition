@@ -375,7 +375,8 @@ static void destiny_boulder_surface_pre(CpuState *cpu,uint32_t pc){
        cpu->PB!=0xc0 || cpu->DB!=0x7e || cpu->D || cpu->m_flag || !cpu->x_flag || cpu->_flag_D ||
        cpu->Y!=(right?16:12) || !TlkResourcesUseMd("gameplay.levels.simbas_destiny.boulder_surface"))return;
     unsigned actor=word(0x68),draw=word(0x7c),native,external;
-    if(actor<0xb293 || actor>=0xdc13 || ((actor-0xb213)&127) || word(actor+4)!=0x88dd || g_ram[actor+6]!=0xc5 ||
+    if(actor<0xb293 || actor>=0xdc13 || ((actor-0xb213)&127) ||
+       (word(actor+4)!=0x88dd && word(actor+4)!=0x88ed) || g_ram[actor+6]!=0xc5 ||
        draw<0x8000 || draw>0xffe8 || word(actor+12)!=draw || word(draw+4)!=actor+8 ||
        word(0x99)!=0x014a || g_ram[0x9b]!=0xc6 || word(draw+10)!=0x014a || g_ram[draw+12]!=0xc6 ||
        !TlkNextSceneDestinyBoulderSurface(right,&native,&external) || cpu->A!=native)return;

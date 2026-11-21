@@ -196,7 +196,10 @@ static void destiny_boulder_pre(CpuState *cpu,uint32_t pc){
        cpu->PB!=0xc0 || cpu->DB!=0x7e || cpu->D || cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
        !TlkResourcesUseMd("gameplay.levels.simbas_destiny.boulder_contact"))return;
     unsigned actor=word(0x68),draw,native,md,caller=word(cpu->S+4);
-    if(actor<0xb293 || actor>=0xdc13 || ((actor-0xb213)&127) || pointer(actor+4)!=0xc588dd ||
+    /* The offset-initialized boulder uses the same stationary controller and
+     * drawing as DD after its initializer. Keep its selected contacts too. */
+    if(actor<0xb293 || actor>=0xdc13 || ((actor-0xb213)&127) ||
+       (pointer(actor+4)!=0xc588dd && pointer(actor+4)!=0xc588ed) ||
        word(0x6c)!=0xb213 || g_ram[cpu->S+6]!=0xc5 || (caller!=0x94f6 && caller!=0x956f) ||
        word(cpu->S+11)!=65532 || word(cpu->S+15)!=48 || word(cpu->S+17)!=47 ||
        !TlkNextSceneDestinyBoulderTop(&native,&md) || cpu->A!=native || word(cpu->S+13)!=native)return;

@@ -194,8 +194,8 @@ static TlkResourceNode nodes[] = {
     {"graphics.sprites.enemies.other", "Other enemies", 10, 0, 0, 0, ""},
     {"graphics.sprites.pickups", "Pickups", 2, 0, 0, 0, ""},
     {"graphics.scenery", "Scenery", 1, 0, 0, 0, ""},
-    {"graphics.scenery.foreground", "Foreground", 14, 1, 0, 1, "Bug Toss uses the complete original MD320x224 foreground and matching sprite origin; other supported scenes use prepared matching MD cells; unmatched/special scenes retain native artwork"},
-    {"graphics.scenery.background", "Background", 14, 1, 0, 1, "MD backgrounds through Pride Rock and postfight, plus the original Stampede canyon; postfight requires prepared rain colors. Sunrise illustration has its own choice; bonus backgrounds follow their individual scenes"},
+    {"graphics.scenery.foreground", "Foreground", 14, 0, 0, 0, "Bug Toss uses the complete original MD320x224 foreground and matching sprite origin; other supported scenes use prepared matching MD cells; unmatched/special scenes retain native artwork"},
+    {"graphics.scenery.background", "Background", 14, 0, 0, 0, "MD backgrounds through Pride Rock and postfight, plus the original Stampede canyon; postfight requires prepared rain colors. Sunrise illustration has its own choice; bonus backgrounds follow their individual scenes"},
     {"graphics.scenery.palettes", "Scenery palettes", 14, 1, 0, 1, "MD scenery colours, including Can't Wait to Be King's changing foreground/background palette; nearest-colour mapping for mixed artwork"},
     {"graphics.hud", "HUD", 1, 0, 0, 0, ""},
     {"audio", "Audio", 0, 0, 0, 0, ""},
@@ -708,6 +708,11 @@ static TlkResourceNode nodes[] = {
     {"graphics.sprites.enemies.porcupines", "Porcupines", 10, 0, 0, 0, "Porcupines in The Pridelands and Simba's Exile"},
     {"graphics.sprites.enemies.porcupines.frames", "Frame artwork", 10, 1, 0, 1, "Choose the porcupine's drawings. Colors, movement, attacks and sounds are chosen separately."},
     {"graphics.sprites.enemies.porcupines.palette", "Palette", 10, 1, 0, 1, "Choose the porcupine's colors without changing its drawings."},
+    {"audio.voices.mufasa_destiny", "Mufasa in Simba's Destiny", 26, 1, 1, 1, "Choose Mufasa's speech in the sky near the end of Simba's Destiny. Music, artwork and scene timing stay separate. Applies with a level restart."},
+    {"graphics.scenery.foreground.frames", "Artwork", 14, 1, 0, 1, "Choose the scenery drawings. Colours have their own choice."},
+    {"graphics.scenery.foreground.palette", "Palette", 14, 1, 0, 1, "Choose the scenery colours without changing the drawings."},
+    {"graphics.scenery.background.frames", "Artwork", 14, 1, 0, 1, "Choose the scenery drawings. Colours have their own choice."},
+    {"graphics.scenery.background.palette", "Palette", 14, 1, 0, 1, "Choose the scenery colours without changing the drawings."},
 };
 enum { COUNT = sizeof nodes / sizeof nodes[0] };
 static int parents_ready;
@@ -794,11 +799,19 @@ int TlkResourcesResolved(int i, int pending) {
     BindResourceParents();
     if (i < 0 || i >= COUNT) return TLK_SOURCE_SNES;
     if(TlkResourceSharedDeath(nodes[i].id))i=TlkResourcesFind("audio.music.pride_health_death");
+    int target=i;
     int preview=graphics_preview_node>=0 && !strncmp(nodes[i].id,"graphics",8);
     const unsigned char *choices = pending || preview ? draft : active;
     for (; i >= 0; i = nodes[i].parent) {
         int choice=preview && i==graphics_preview_node?graphics_preview_source:choices[i];
         if(choice)return choice;
+        /* Old profiles stored one shared palette. New layer/branch overrides
+         * take priority, then the legacy explicit colour choice, then parents. */
+        if((!strcmp(nodes[i].id,"graphics.scenery.foreground") || !strcmp(nodes[i].id,"graphics.scenery.background")) &&
+           (strstr(nodes[target].id,".palette") && strcmp(nodes[target].id,"graphics.scenery.palettes"))) {
+            int legacy=TlkResourcesFind("graphics.scenery.palettes");
+            if(legacy>=0 && choices[legacy])return choices[legacy];
+        }
     }
     return TLK_SOURCE_SNES;
 }
@@ -846,7 +859,16 @@ int TlkResourcesViewportForScene(unsigned level) {
     int width=TlkResourcesViewportWidth();
     return width==320 && level==3 ? 256 : width;
 }
-int TlkResourcesUseMd(const char *id) { return md_ready && TlkResourcesResolved(TlkResourcesFind(id),0)==TLK_SOURCE_MD; }
+int TlkResourcesUseMd(const char *id) {
+    if(!strcmp(id,"graphics.scenery.foreground"))id="graphics.scenery.foreground.frames";
+    else if(!strcmp(id,"graphics.scenery.background"))id="graphics.scenery.background.frames";
+    else if(!strcmp(id,"graphics.scenery.stampede_palette")) {
+        int branch=TlkResourcesFind("graphics.scenery.background"),leaf=TlkResourcesFind("graphics.scenery.background.palette");
+        const unsigned char *choices=graphics_preview_node>=0?draft:active;
+        if(graphics_preview_node==branch || graphics_preview_node==leaf || choices[branch] || choices[leaf])id="graphics.scenery.background.palette";
+    }
+    return md_ready && TlkResourcesResolved(TlkResourcesFind(id),0)==TLK_SOURCE_MD;
+}
 
 int TlkResourcesHudFramesMd(unsigned kind) {
     static const char *ids[]={"graphics.hud.frames.roar","graphics.hud.frames.health","graphics.hud.frames.lives"};

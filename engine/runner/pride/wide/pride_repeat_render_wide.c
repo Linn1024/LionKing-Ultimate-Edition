@@ -9,6 +9,7 @@ static uint16_t render_cub_color(unsigned,unsigned,const uint16_t *,uint16_t);
 static uint16_t render_hud_color(unsigned,const uint16_t *,uint16_t);
 static void render_scene_palette(unsigned,const uint16_t *,int);
 static uint16_t render_scene_color(unsigned,int,uint16_t);
+static uint16_t render_scene_mode_color(unsigned,int,uint16_t,int);
 static int render_npc_sample(unsigned,int,int,unsigned,int,int,const uint16_t *,uint16_t *);
 static int render_checkpoint_sample(uint32_t,int,int,unsigned,unsigned,const uint16_t *,uint16_t *);
 static int render_shared_palette(const uint16_t *);
@@ -16,6 +17,7 @@ static int render_shared_palette(const uint16_t *);
 #define TlkResourcesHudColor render_hud_color
 #define TlkMdScenePalette render_scene_palette
 #define TlkMdSceneColor render_scene_color
+#define TlkMdSceneModeColor render_scene_mode_color
 #define TlkMdSpritesNpcSample render_npc_sample
 #define TlkResourcesCheckpointSample render_checkpoint_sample
 #define TlkResourcesSharedPaletteMatches render_shared_palette
@@ -26,6 +28,7 @@ static int render_shared_palette(const uint16_t *);
 #undef TlkResourcesHudColor
 #undef TlkMdScenePalette
 #undef TlkMdSceneColor
+#undef TlkMdSceneModeColor
 #undef TlkMdSpritesNpcSample
 #undef TlkResourcesCheckpointSample
 #undef TlkResourcesSharedPaletteMatches
@@ -183,6 +186,10 @@ static void render_scene_palette(unsigned level,const uint16_t *cgram,int md) {
 static uint16_t render_scene_color(unsigned index,int external,uint16_t original) {
     uint16_t c=TlkMdSceneColor(index,external,original);
     return scene_palette_active?semantic_color(c,TlkResourcesUseMd("graphics.scenery.palettes")):c;
+}
+static uint16_t render_scene_mode_color(unsigned index,int external,uint16_t original,int md) {
+    uint16_t c=TlkMdSceneModeColor(index,external,original,md);
+    return scene_palette_active?semantic_color(c,md):c;
 }
 static int render_npc_sample(unsigned pose,int x,int y,unsigned pixel,int frames,int palette,const uint16_t *cgram,uint16_t *color) {
     int result=TlkMdSpritesNpcSample(pose,x,y,pixel,frames,palette,scene_palette_active?unfaded(cgram):cgram,color);

@@ -77,6 +77,7 @@ const char *Label(int i) {
 }
 bool Hidden(int i) {
     const auto *n=TlkResourcesNode(i);const char *id=n->id;
+    if(!strcmp(id,"graphics.scenery.palettes"))return true;
     if(n->leaf&&!n->md_supported)return true;
     if(!n->leaf&&Starts(id,"audio.music."))return true;
     if(!strcmp(id,"graphics.titles.pride_lands.duration")||!strcmp(id,"gameplay.levels.pride_lands.final_life"))return true;
@@ -304,9 +305,11 @@ struct Audition {
                     case -4:TlkMdSoundExileExitSample(sound.value);break;
                     case -5:TlkMdSoundBonusResultSample();break;
                     case -6:{const uint16_t *r=TlkBePreparedGroupSoundRules();if(r)TlkMdSoundPcm(r[TLK_BP_SOUND_MD_SAMPLE],r[TLK_BP_SOUND_MD_PARAMETER]);break;}
+                    case -7:TlkMdSoundDestinySpeechSample(0);break;
                     default:TlkMdSoundCommand(sound.selector,sound.value);break;
                 }}ok=true;
                 for(unsigned pos=cue>=0&&browser_sounds[cue].selector==2&&browser_sounds[cue].value==92?16000:0;pos<32000*5;pos+=512) {
+                    if(cue>=0&&browser_sounds[cue].selector==-7&&pos>=32000*TLK_DESTINY_SPEECH_SECOND_DELAY/60&&pos-512<32000*TLK_DESTINY_SPEECH_SECOND_DELAY/60)TlkMdSoundDestinySpeechSample(1);
                     unsigned n=std::min(512u,32000*5-pos);
                     if(!TlkMdSoundRender(pcm.data()+pos*2,n,32000)){ok=false;break;}
                 }
@@ -322,9 +325,13 @@ struct Audition {
     }
 };
 const char *Explanation(const TlkResourceNode *n) {
+    if(!strcmp(n->id,"audio.music.pride_rock.finale"))return "Choose the music after Scar is defeated, including when it begins. Genesis starts during Simba's victory walk; SNES keeps its original pause. Artwork and animation timing stay separate.";
+    if(!strcmp(n->id,"audio.effects.interlevel.pride_lands")||!strcmp(n->id,"audio.effects.interlevel.stampede"))return "Choose the dialogue for this story scene. Genesis speech works with either the original SNES pictures or the Genesis scene. The picture and animation choices stay separate.";
     if(!strcmp(n->id,"graphics.titles.pride_lands.duration"))return "Choose how long the Pride Lands opening name stays visible.";
     if(!strcmp(n->id,"graphics.menus.publisher_cards"))return "Choose the opening publisher logos shown before the title menu.";
     if(const char *text=TlkBrowserPlacementDescription(n->id))return text;
+    if(!strcmp(n->id,"graphics.scenery.foreground")||!strcmp(n->id,"graphics.scenery.background"))return "Choose this layer's artwork and colours together. Open Artwork or Palette below to mix them. Terrain and collision follow your gameplay choices.";
+    if(Starts(n->id,"graphics.scenery.")&&strstr(n->id,".frames"))return "Choose this scenery layer's drawings. Colours have their own Palette choice; terrain and collision follow Gameplay.";
     if(!n->leaf)return "Set a source for this whole branch. Choose a character, object or setting below to explore it.";
     if(!strcmp(n->id,"graphics.interlevel.pride_lands"))return "Both versions have an illustrated scene after Pride Lands. This build pairs each illustration with its own scene timing, chosen under Gameplay / Levels / Pride Lands. Speech is chosen separately.";
     if(strstr(n->id,"death_motion"))return "Changes the movement of the death animation. Sprite artwork and colors are separate choices.";
@@ -340,6 +347,7 @@ struct VersionComparison {std::string snes,genesis;};
 VersionComparison Comparison(const TlkResourceNode *n) {
     const char *id=n->id;
     if(!n->leaf)return {"Child choices follow SNES unless you override them.","Child choices follow Genesis unless you override them."};
+    if(!strcmp(id,"audio.music.pride_rock.finale"))return {"The SNES ending music, with the original pause before it begins.","The Genesis ending music starts when Simba begins his victory walk toward the edge."};
     if(Starts(id,"gameplay")) {
         if(const auto *h=TlkBrowserGameplayComparison(id))return {h->snes,h->genesis};
         if(strstr(id,"positions")||strstr(id,"placements")||strstr(id,"position")||strstr(id,".pickups"))
@@ -376,6 +384,19 @@ int ChangeTiming(int index) {
         for(int p=Parent(i);p>=0;p=Parent(p))if(p==index){change=std::max(change,ChangeTiming(i));break;}
     }
     return change;
+}
+/* Apply commits every draft choice, including ones on other pages. Report
+ * effective leaf changes so explicit overrides with the same result stay live. */
+int PendingChangeTiming(std::string &reason) {
+    int timing=TLK_CHANGE_LIVE;
+    reason.clear();
+    for(int i=1;i<TlkResourcesCount();i++) {
+        const auto *n=TlkResourcesNode(i);
+        if(!n->leaf || TlkResourcesResolved(i,0)==TlkResourcesResolved(i,1))continue;
+        int change=ChangeTiming(i);
+        if(change>timing){timing=change;reason=Path(i);}
+    }
+    return timing;
 }
 void DrawComparison(const TlkResourceNode *n) {
     VersionComparison c=Comparison(n);
@@ -466,7 +487,7 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
         if(!has_menu_art)ImGui::TextWrapped("Menu artwork unavailable. Run Setup to restore it.");
         const char *tabs[]={"Artwork","Music & sound","Gameplay","Display","Advanced"};
         for(int i=0;i<5;i++){if(i)ImGui::SameLine();bool active=i==category;if(active)ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(.38f,.23f,.10f,1));std::string tab=(active?"  ":"")+std::string(tabs[i]);if(ImGui::Button(tab.c_str())){category=i;selected=TlkResourcesFind(i==0?"graphics":i==1?"audio":i==2?"gameplay":i==3?"display":"game");}if(active){menu_art.MarkSelected();ImGui::PopStyleColor();}}
-        ImGui::Spacing();float body=ImGui::GetContentRegionAvail().y-115;
+        ImGui::Spacing();float body=ImGui::GetContentRegionAvail().y-185;
         ImGui::BeginChild("Navigation",ImVec2(std::min(390.f,io.DisplaySize.x*.30f),body),ImGuiChildFlags_Borders);
         ImGui::SetWindowFontScale(.875f);
         ImGui::SetNextItemWidth(-1);ImGui::InputTextWithHint("##search","Find a choice...",search,sizeof search);
@@ -502,7 +523,7 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
         else ImGui::TextColored(teal,"Will use %s%s",Source(resolved),choice==0?" (inherited)":"");
         if(node->leaf&&!node->md_supported)ImGui::TextColored(gold,"This item currently supports SNES only.");
         int timing=ChangeTiming(selected);
-        const char *when=timing==TLK_CHANGE_GAME?"After Apply & save: restart the game.":timing==TLK_CHANGE_LEVEL?"After Apply & save: the current level restarts.":"After Apply & save: takes effect when you resume.";
+        const char *when=timing==TLK_CHANGE_GAME?"This choice requires a game restart.":timing==TLK_CHANGE_LEVEL?"This choice restarts the current level.":"This choice takes effect when you resume.";
         if(!strcmp(node->id,"graphics.menus.publisher_cards"))when="After Apply & save: publisher cards change on the next launch. The current opening is not replayed.";
         ImGui::TextWrapped("%s",when);
         if(!node->leaf)ImGui::TextColored(muted,"Individual child overrides are kept. Restart depends on the children you change.");
@@ -614,9 +635,18 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
         ImGui::PopTextWrapPos();ImGui::EndChild();ImGui::Spacing();
         char reason[256];int blocked=TlkResourcesValidate(reason,sizeof reason);
         ImGui::TextColored(muted,"Preset: %s",presets.Label().c_str());
-        if(blocked)ImGui::TextColored(gold,"%s",reason);else ImGui::TextColored(muted,"%s",TlkResourcesDirty()?"You have unsaved choices.":"Your saved choices are up to date.");
+        std::string restart_reason;int pending_timing=PendingChangeTiming(restart_reason);
+        if(blocked)ImGui::TextColored(gold,"%s",reason);
+        else if(!TlkResourcesDirty())ImGui::TextColored(muted,"Your saved choices are up to date.");
+        else {
+            ImGui::PushStyleColor(ImGuiCol_Text,pending_timing==TLK_CHANGE_LIVE?muted:gold);
+            ImGui::TextWrapped("%s",pending_timing==TLK_CHANGE_GAME?"Your pending choices require a game restart.":pending_timing==TLK_CHANGE_LEVEL?"Apply will restart the current level, including your other pending choices.":"All pending choices take effect when you resume.");
+            if(!restart_reason.empty()){ImGui::SetWindowFontScale(.75f);ImGui::TextWrapped("Restart required by: %s",restart_reason.c_str());ImGui::SetWindowFontScale(1);}
+            ImGui::PopStyleColor();
+        }
         ImGui::BeginDisabled(blocked||!TlkResourcesDirty());
-        if(ImGui::Button("Apply & save",ImVec2(260,40))&&TlkResourcesApply()){result=1;running=false;}
+        const char *apply_label=pending_timing==TLK_CHANGE_LEVEL?"Save & restart":"Apply & save";
+        if(ImGui::Button(apply_label,ImVec2(260,40))&&TlkResourcesApply()){result=1;running=false;}
         ImGui::EndDisabled();ImGui::SameLine();if(ImGui::Button("Undo changes",ImVec2(240,40))){TlkResourcesRevert();presets.loaded=presets.Match(BrowserPresets::Choices(0));pictures.Clear();notice.clear();}
         ImGui::SameLine();if(ImGui::Button("Presets",ImVec2(180,40)))ImGui::OpenPopup("Choose a starting point");
         if(ImGui::BeginPopup("Choose a starting point")) {
@@ -729,13 +759,14 @@ extern "C" int TlkMainSettingsOpen(SDL_Window *parent,RecompRuntimeUi *ui,void (
         if(page==2)ImGui::TextWrapped(binding?"Press a key or controller button. Escape cancels.":"Choose a game button, then press its new key or controller button. The game menu determines each button's action.");
         std::vector<size_t> order;
         for(size_t i=0;i<ui->config.item_count;i++)if(!strcmp(ui->config.items[i].key,"tlk.window_size"))order.push_back(i);
-        for(size_t i=0;i<ui->config.item_count;i++)if(strcmp(ui->config.items[i].key,"tlk.window_size"))order.push_back(i);
+        for(size_t i=0;i<ui->config.item_count;i++)if(!strcmp(ui->config.items[i].key,"tlk.screen_effects"))order.push_back(i);
+        for(size_t i=0;i<ui->config.item_count;i++)if(strcmp(ui->config.items[i].key,"tlk.window_size")&&strcmp(ui->config.items[i].key,"tlk.screen_effects"))order.push_back(i);
         for(size_t i:order){
             const auto *item=ui->config.items+i;const char *key=item->key;
             if(!key||!item->section)continue;
             bool display=!strcmp(item->section,"Display")||!strcmp(item->section,"Graphics");
             bool show=page==0?display:page==1?!strcmp(item->section,"Audio"):page==2?!strcmp(item->section,"Controls"):page==3?(!strcmp(item->section,"Level select")||!strcmp(item->section,"Practice")):!strcmp(item->section,"About");
-            if(page==0){bool layout=!strcmp(key,"tlk.widescreen")||!strcmp(key,"tlk.widescreen_hud")||!strcmp(key,"tlk.widescreen_enemies")||!strcmp(key,"tlk.aspect");bool pixels=!strcmp(key,"tlk.shader")||!strcmp(key,RECOMP_RUNTIME_UI_KEY_LINEAR_FILTER)||!strcmp(key,RECOMP_RUNTIME_UI_KEY_INTEGER_SCALE);if(display_page==0&&(layout||pixels))continue;if(display_page==1&&!layout)continue;if(display_page==2&&!pixels)continue;}
+            if(page==0){bool layout=!strcmp(key,"tlk.widescreen")||!strcmp(key,"tlk.widescreen_hud")||!strcmp(key,"tlk.widescreen_enemies")||!strcmp(key,"tlk.aspect");bool pixels=!strcmp(key,"tlk.screen_effects")||!strcmp(key,"tlk.shader")||!strcmp(key,RECOMP_RUNTIME_UI_KEY_LINEAR_FILTER)||!strcmp(key,RECOMP_RUNTIME_UI_KEY_INTEGER_SCALE);if(display_page==0&&(layout||pixels))continue;if(display_page==1&&!layout)continue;if(display_page==2&&!pixels)continue;}
             if(!show||!strcmp(key,"tlk.hd_mode7")||!strcmp(key,RECOMP_RUNTIME_UI_KEY_MENU_DIM)||!strcmp(key,RECOMP_RUNTIME_UI_KEY_MENU_OPACITY))continue;
             if(page==4&&!strcmp(key,"tlk.about"))continue;
             ImGui::PushID((int)i);bool enabled=!binding&&(!cb.is_enabled||cb.is_enabled(cb.context,item));
@@ -750,7 +781,20 @@ extern "C" int TlkMainSettingsOpen(SDL_Window *parent,RecompRuntimeUi *ui,void (
             if(!strcmp(key,"tlk.widescreen_enemies")){label="Widescreen gameplay";description="Original keeps the console camera and enemy timing while drawing a wider picture. Extended adjusts the camera and activation for the wider view, changing gameplay and recorded walkthroughs.";}
             if(!strcmp(key,"tlk.aspect")){label="Original picture shape";description="Used for the original console view. TV keeps the classic television shape; 8:7 uses square game pixels; 1:1 makes the whole frame square. Widescreen uses Level view instead.";}
             if(!strcmp(key,"tlk.vsync")){label="Match monitor refresh";description="Synchronizes presentation with your monitor. The game still uses its original update rate.";}
-            if(!strcmp(key,"tlk.shader")){description=enabled?"Choose a screen effect.":"Screen effects require the OpenGL renderer. They are unavailable with the current renderer.";}
+            char effects_state[32]={};
+            const RecompRuntimeUiItem *effects_item=nullptr;
+            if(!strcmp(key,"tlk.shader")||!strcmp(key,"tlk.screen_effects")){
+                for(size_t j=0;j<ui->config.item_count;j++)if(!strcmp(ui->config.items[j].key,"tlk.screen_effects")){effects_item=ui->config.items+j;break;}
+                if(effects_item&&cb.get_text)cb.get_text(cb.context,effects_item,effects_state,sizeof effects_state);
+            }
+            if(!strcmp(key,"tlk.screen_effects")){
+                label="Enable screen effects";
+                description=!strcmp(effects_state,"restart")?"Saved. Close and reopen the game to apply this change.":!strcmp(effects_state,"unavailable")?"Screen effects could not start on this computer. You can keep playing with this option off.":"Allows CRT, LCD and other picture effects. Close and reopen the game after changing this option.";
+            }
+            if(!strcmp(key,"tlk.shader")){
+                label="Screen effect";enabled=!binding;
+                description=!strcmp(effects_state,"active")?"Choose a look. Changes apply when you return to the game.":!strcmp(effects_state,"restart")?"Your choice is saved. Close and reopen the game to finish changing screen effects.":!strcmp(effects_state,"unavailable")?"Your choice is saved, but screen effects could not start on this computer.":"Choose a look, then enable screen effects above and close and reopen the game.";
+            }
             if(!strcmp(key,RECOMP_RUNTIME_UI_KEY_LINEAR_FILTER)){label="Smooth pixels";description="Softens pixel edges. Turn off for crisp original artwork.";}
             if(!strcmp(key,RECOMP_RUNTIME_UI_KEY_INTEGER_SCALE))description="Keeps pixels at whole-number sizes. Borders may remain around the picture.";
             if(!strcmp(key,"tlk.window_size")){
@@ -784,7 +828,7 @@ extern "C" int TlkMainSettingsOpen(SDL_Window *parent,RecompRuntimeUi *ui,void (
                     const char *shown=view_mode&&value>=0&&value<4?view_names[value]:wide_rules?(value?"Extended camera and enemies":"Original camera and enemies"):value>=item->minimum&&(size_t)(value-item->minimum)<item->choice_count?item->choices[value-item->minimum]:"Custom";
                     if(ImGui::BeginCombo("##value",shown)){for(size_t k=0;k<item->choice_count;k++)if(ImGui::Selectable(view_mode&&k<4?view_names[k]:wide_rules?(k?"Extended camera and enemies":"Original camera and enemies"):item->choices[k],value==item->minimum+(int)k)){value=item->minimum+(int)k;changed=true;}ImGui::EndCombo();}
                 }else changed=ImGui::SliderInt("##value",&value,item->minimum,item->maximum);
-                if(changed&&cb.set_value){int saved=cb.set_value(cb.context,item,value);if(saved)save();if(!strcmp(key,RECOMP_RUNTIME_UI_KEY_WINDOW_SCALE))*resolution=0;}
+                if(changed&&cb.set_value){int saved=cb.set_value(cb.context,item,value);if(saved)save();if(saved&&!strcmp(key,"tlk.screen_effects"))notice="Saved. Close and reopen the game to apply this change.";if(!strcmp(key,RECOMP_RUNTIME_UI_KEY_WINDOW_SCALE))*resolution=0;}
             }
             ImGui::EndDisabled();ImGui::TextWrapped("%s",description?description:"");ImGui::Separator();ImGui::PopID();
         }

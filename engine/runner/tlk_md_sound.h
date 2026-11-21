@@ -21,6 +21,9 @@ void TlkMdSoundCliffStop(void);
 void TlkMdSoundExileExitSample(unsigned sample);
 /* Original opening Timon raw PCM2D191E/319A, period125. */
 void TlkMdSoundOpeningTimonSample(void);
+enum { TLK_DESTINY_SPEECH_SECOND_DELAY=110 };
+/* Original Mufasa-in-the-sky clips, MD1CB056/1CB06C, period125. */
+void TlkMdSoundDestinySpeechSample(unsigned sample);
 void TlkMdSoundClearOutput(void);
 void TlkMdSoundRestart(void);
 int TlkMdSoundRender(int16_t *dst,unsigned frames,unsigned output_rate);

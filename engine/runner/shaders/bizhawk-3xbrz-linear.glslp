@@ -1,0 +1,9 @@
+shaders = 2
+shader0 = _passes/3xbrz.glsl
+filter_linear0 = false
+wrap_mode0 = clamp_to_edge
+scale_type0 = source
+scale0 = 3.0
+shader1 = _passes/bizhawk-stock.glsl
+filter_linear1 = true
+wrap_mode1 = clamp_to_edge

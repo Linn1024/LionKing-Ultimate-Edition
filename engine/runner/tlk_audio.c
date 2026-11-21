@@ -219,8 +219,13 @@ static int ending_credits_ready(void){return ending_credits() && word(0xa6f0)==3
     word(0xb21b)==118 && word(0xb21d)==30;}
 static int finale_scene(void){return word(0x1ff9e)==9 && word(0x2000)==0xffff &&
     address(0xdf)==0xc007db && address(0xb217)==0xc5858a && address(0xb243)==0xc674be;}
+/* Postfight ownership begins before the native world loader changes549
+ * to7DB. Original MD starts its score on this controller's first entry. */
+static int finale_walk_owner(void){return word(0x1ff9e)==9 && word(0x2000)==0xffff &&
+    (address(0xdf)==0xc00549 || address(0xdf)==0xc007db) &&
+    address(0xb217)==0xc5858a && address(0xb243)==0xc674be;}
 static int finale_carry(void){return music_track==339 && word(0x1ff9e)==9 && word(0x2000)==0xffff &&
-    (finale_scene() || ending_sunrise() || address(0xdf)==0xc005ab);}
+    (finale_walk_owner() || ending_sunrise() || address(0xdf)==0xc005ab);}
 static int ending_speech_selected(void){return ending_sunrise() && word(0x1ff96) &&
     TlkResourcesUseMd("audio.voices.ending") && TlkInterlevelDataReady() && TlkMdSoundReady();}
 #include "tlk_ending_timing.inc"
@@ -977,8 +982,10 @@ static void exile_exit_audio_frame(void) {
 #include "tlk_spider_audio.inc"
 #include "tlk_spider_projectile_audio.inc"
 #include "tlk_adult_swipe_audio.inc"
+#include "tlk_adult_hurt_impact_audio.inc"
 #include "tlk_adult_pounce_audio.inc"
 #include "tlk_adult_landing_audio.inc"
+#include "tlk_destiny_speech_audio.inc"
 #include "tlk_grapple_audio.inc"
 #include "tlk_big_cat_audio.inc"
 #include "tlk_big_cat_hit_audio.inc"
@@ -992,11 +999,15 @@ static void exile_exit_audio_frame(void) {
 #include "tlk_hazard_death_audio.inc"
 #include "tlk_shared_harmful_audio.inc"
 #include "tlk_revival_audio.inc"
+#include "tlk_native_story_audio.inc"
 static void observe_inner(CpuState *cpu, uint32_t pc) {
+    if(native_story_audio(cpu,pc))return;
+    if(destiny_speech_audio(cpu,pc))return;
     if(toss_audio_opcode(cpu,pc))return;
     if(spider_audio(cpu,pc))return;
     if(spider_projectile_audio(cpu,pc))return;
     if(adult_swipe_audio(cpu,pc))return;
+    if(adult_hurt_impact_audio(cpu,pc))return;
     if(adult_pounce_audio(cpu,pc))return;
     if(adult_landing_thud_audio(cpu,pc))return;
     if(grapple_contact_audio(cpu,pc))return;
@@ -1383,7 +1394,7 @@ static void observe_inner(CpuState *cpu, uint32_t pc) {
                 if(cue>=48)cue-=16;if(cue>=16)cue-=16;
                 cpu->A=0;TlkMdSoundCommand(19,cue);effect_tail();return;
             }
-            if(cpu->X==63 && (caller==0xc4cf6a || caller==0xc4d0d0 || caller==0xc4d2b4) &&
+            if(cpu->X==63 && (caller==0xc4cf6a || caller==0xc4d0cf || caller==0xc4d2b4) &&
                TlkResourcesUseMd("audio.effects.world.simbas_destiny.monkey_defeat")){cpu->A=0;return;}
         }
     }
@@ -1464,6 +1475,7 @@ static void install_graveyard_observers(void) {
     interp_bridge_add_pre_opcode_hook(0xc19f87,graveyard_pre);
     interp_bridge_add_pre_opcode_hook(0xc22cbf,graveyard_pre);
 }
+static int audio_profile_choices_changed(void);
 void TlkAudioInstall(void) {
     ending_timing_install();
     TlkNativeAudioOwnerInstall();
@@ -1481,21 +1493,8 @@ void TlkAudioInstall(void) {
     path=getenv("TLK_AUDIO_STEMS");
     if (path && !stems) stems=fopen(path,"w");
     if (stems) fprintf(stems,"frame,samples,native_peak,md_peak\n");
-    music_choice=music_mask();
-    for (unsigned i=0;i<CUE_COUNT;i++) cue_choices[i]=TlkResourcesUseMd(cues[i].id);
-    for(unsigned i=0;i<CW_SOUND_COUNT;i++)cw_choices[i]=TlkResourcesUseMd(cw_sources[i]);
-    for(unsigned i=0;i<GY_SOUND_COUNT;i++)gy_choices[i]=TlkResourcesUseMd(gy_sources[i]);
-    for(unsigned i=0;i<HUNT_SOUND_COUNT;i++)hunt_choices[i]=TlkResourcesUseMd(hunt_sources[i]);
-    for(unsigned i=0;i<MENU_CUE_COUNT;i++)menu_cue_choices[i]=TlkResourcesUseMd(menu_cues[i].id);
-    for(unsigned i=0;i<TRIGGER_COUNT;i++)trigger_choices[i]=TlkResourcesUseMd(trigger_sources[i]);
-    for(unsigned i=0;i<3;i++)monkey_choices[i]=TlkResourcesUseMd(monkey_sources[i]);
-    adult_roar_choice=TlkResourcesUseMd("audio.effects.simba.adult_roar");
-    scar_attack_choice=TlkResourcesUseMd("audio.effects.world.scar.attack");
-    pride_fire_choice=TlkResourcesUseMd("audio.effects.world.pride_rock_fire");
-    prepared_rock_choice=TlkResourcesUseMd("audio.effects.world.be_prepared.rock_impact");
-    arena_gate_choice=TlkResourcesUseMd("audio.effects.world.simbas_destiny.arena_gate");
-    adult_taunt_choice=TlkResourcesUseMd("audio.effects.world.adult_hyenas.taunt");
-    for(unsigned i=0;i<2;i++)victory_voice_choices[i]=TlkResourcesUseMd(victory_voice_sources[i]);
+    /* Establish all source baselines without restarting the sound driver. */
+    audio_profile_choices_changed();
     g_tlk_audio_pc_hook=observe;
     /* Both paths observe immediately after PHA at C22C2C. */
     interp_bridge_add_pre_opcode_hook(0xc22c2d,pre);
@@ -1523,6 +1522,9 @@ void TlkAudioFrame(unsigned value) {
     ending_timing_frame();
     TlkNativeAudioOwnerInstall();
     frame=value;
+    native_story_frame();
+    if(native_story_audio_kind)return; /* Dialogue owns this non-gameplay bus. */
+    destiny_speech_frame();
     if(opening_timon_selected()) {
         if(music_active)stop_music();
         if(fx_tail)fx_tail--;
@@ -1580,6 +1582,18 @@ void TlkAudioFrame(unsigned value) {
         death_phase=md_death_music()?2:1;
         if(death_phase==2 && word(0x1ff94) && TlkMdSoundReady())start_music();
     }
+    /* Original MD1B2870/1CDD24 starts339 at postfight entry while Simba
+     * still walks to the edge. The later native E078 packet remains the
+     * independent animation clock cue; it must not delay or restart the score. */
+    if(finale_walk_owner() && word(0x1ff94) && TlkMdSoundReady() &&
+       TlkResourcesUseMd("audio.music.pride_rock.finale") &&
+       (!music_active || music_track!=339)) {
+        TlkMdSoundCommand(1,339);music_track=339;music_scene=9;
+        music_active=1;pending_stop=0;
+        static FILE *entry_log;static int entry_checked;
+        if(!entry_checked){entry_checked=1;const char *p=getenv("TLK_FINALE_ENTRY_MUSIC_TRACE");if(p){entry_log=fopen(p,"w");if(entry_log)fputs("field,x,y,phase,track\n",entry_log);}}
+        if(entry_log){fprintf(entry_log,"%u,%u,%u,%u,339\n",frame,word(0xb21b),word(0xb21d),word(0xb23f));fflush(entry_log);}
+    }
     if ((music_active && (!selected_music() || music_scene!=music_scene_id())) ||
         (!pride() && !next_scene() && !ending_credits() && !ending_sunrise() && !finale_scene() && !finale_carry() && !(cant_wait_fx && cant_wait()) && !(graveyard_fx && TlkAudioGraveyardScene()) && !hunt_fx && !prepared_fx && !exile_exit_fx && !(menu_fx && menu_effect_scene()) && fx_tail)) {
         if(title_music_scene() || death_scene() || hunt_fx || prepared_fx || exile_exit_fx)stop_music();else TlkAudioReset();
@@ -1612,12 +1626,14 @@ void TlkAudioFrame(unsigned value) {
     exile_exit_audio_frame();
     if (trace) fflush(trace);
 }
-void TlkAudioReset(void) { exile_exit_fx=0;exile_exit_age=exile_exit_phase=exile_exit_delay=0;music_active=pending_stop=fx_tail=menu_fx=cant_wait_fx=graveyard_fx=hunt_fx=prepared_fx=0;cw_reaction_count=0;music_track=death_phase=battle_ready=music_entry_seen=0;TlkMdSoundRestart(); }
-int TlkAudioProfileChanged(void) {
+void TlkAudioReset(void) { native_story_audio_kind=0; destiny_speech_clear(); exile_exit_fx=0;exile_exit_age=exile_exit_phase=exile_exit_delay=0;music_active=pending_stop=fx_tail=menu_fx=cant_wait_fx=graveyard_fx=hunt_fx=prepared_fx=0;cw_reaction_count=0;music_track=death_phase=battle_ready=music_entry_seen=0;TlkMdSoundRestart(); }
+static int audio_profile_choices_changed(void) {
     int choice=music_mask();
     int exit_choice=TlkResourcesUseMd("audio.effects.world.simbas_exile.exit");
     int group_choice=TlkResourcesUseMd("audio.effects.world.be_prepared.group_call");
     int changed=choice!=music_choice || group_choice!=prepared_choice;prepared_choice=group_choice;
+    unsigned speech=TlkResourcesUseMd("audio.voices.mufasa_destiny");
+    changed|=speech!=destiny_speech_choice;destiny_speech_choice=speech;
     int spider=TlkResourcesUseMd("audio.effects.world.hakuna.spider");
     changed|=spider!=spider_choice;spider_choice=spider;
     int spider_projectile=TlkResourcesUseMd("audio.effects.world.hakuna.spider_projectile");
@@ -1695,8 +1711,11 @@ int TlkAudioProfileChanged(void) {
         int source=TlkResourcesUseMd(trigger_sources[i]);changed|=source!=trigger_choices[i];trigger_choices[i]=source;
     }
     for(unsigned i=0;i<3;i++){int source=TlkResourcesUseMd(monkey_sources[i]);changed|=source!=monkey_choices[i];monkey_choices[i]=source;}
-    if (!changed) return 0;
-    music_choice=choice;TlkAudioReset();return 1;
+    music_choice=choice;return changed;
+}
+int TlkAudioProfileChanged(void) {
+    if(!audio_profile_choices_changed())return 0;
+    TlkAudioReset();return 1;
 }
 static void audit_native_output(const int16_t *samples,unsigned count,unsigned gain) {
     if(!gain || !samples || !count || count>4096 || !TlkFallbackEnabled() || !TlkResourcesGroupMd("audio"))return;
@@ -1706,6 +1725,14 @@ static void audit_native_output(const int16_t *samples,unsigned count,unsigned g
         TlkFallbackRecord("unclassified_audio","audio","native_output_retained",0,0,peak,count*2);}
 }
 void TlkAudioMix(int16_t *dst,unsigned count,unsigned output_rate) {
+    if(native_story_audio_kind && native_story_context()==native_story_audio_kind && dst && count && count<=4096) {
+        /* These native illustrations suspend the world using A89. Their
+         * selected dialogue must continue, as in the existing MD scene path. */
+        memset(dst,0,count*2*sizeof *dst);TlkMdSoundRender(dst,count,output_rate);
+        if(stems){unsigned peak=0;for(unsigned i=0;i<count*2;i++){unsigned v=(unsigned)abs(dst[i]);if(v>peak)peak=v;}
+            fprintf(stems,"%u,%u,0,%u\n",frame,count,peak);fflush(stems);}
+        return;
+    }
     if(opening_timon_selected() && dst && count && count<=4096) {
         memset(dst,0,count*2*sizeof *dst);
         if(word(0x1ff96))TlkMdSoundRender(dst,count,output_rate);
@@ -1818,10 +1845,12 @@ int TlkAudioSaveHistory(uint8_t *out,size_t size) {
     size_t expected=TlkAudioHistorySize();if(!out || !expected || size!=expected)return 0;
     memset(out,0,AUDIO_HEADER);memcpy(out,"TLKAUD01",8);TlkPut32(out+8,6);
     TlkPut32(out+120,ending_timing_epoch);TlkPut32(out+124,ending_timing_selected());
-    TlkPut32(out+128,exile_exit_age);TlkPut32(out+132,exile_exit_phase);TlkPut32(out+136,exile_exit_delay);
+    TlkPut32(out+128,destiny_speech_active?destiny_speech_age:exile_exit_age);
+    TlkPut32(out+132,destiny_speech_active?destiny_speech_actor:exile_exit_phase);
+    TlkPut32(out+136,destiny_speech_active?destiny_speech_second:exile_exit_delay);
     TlkPut32(out+112,death_phase);
     TlkPut32(out+116,battle_ready);
-    TlkPut32(out+12,(music_active?1u:0u)|(pending_stop?2u:0u)|(menu_fx?4u:0u)|(cant_wait_fx?8u:0u)|(graveyard_fx?16u:0u)|(hunt_fx?32u:0u)|(prepared_fx?64u:0u)|(music_entry_seen?128u:0u)|(exile_exit_fx?256u:0u));
+    TlkPut32(out+12,(music_active?1u:0u)|(pending_stop?2u:0u)|(menu_fx?4u:0u)|(cant_wait_fx?8u:0u)|(graveyard_fx?16u:0u)|(hunt_fx?32u:0u)|(prepared_fx?64u:0u)|(music_entry_seen?128u:0u)|(exile_exit_fx?256u:0u)|(destiny_speech_active?512u:0u));
     TlkPut32(out+16,fx_tail);TlkPut32(out+20,music_track);TlkPut32(out+24,music_scene);
     TlkPut32(out+28,host_rate?host_rate:saved_rate);TlkPutDouble(out+32,host_fraction?*host_fraction:saved_fraction);
     size_t native=TlkNativeAudioHistorySize(),nested=size-AUDIO_HEADER-native;
@@ -1833,7 +1862,7 @@ int TlkAudioSaveHistory(uint8_t *out,size_t size) {
 }
 int TlkAudioValidateHistory(const uint8_t *data,size_t size) {
     if(!data || size<AUDIO_HEADER || size>TLK_AUDIO_HISTORY_MAX || memcmp(data,"TLKAUD01",8) ||
-       TlkGet32(data+8)!=6 || TlkGet32(data+12)>511 || TlkGet32(data+16)>120 ||
+       TlkGet32(data+8)!=6 || TlkGet32(data+12)>1023 || TlkGet32(data+16)>120 ||
        TlkGet32(data+20)>65535 || TlkGet32(data+24)>65535)return 0;
     unsigned rate=TlkGet32(data+28),nested=TlkGet32(data+40),native=TlkGet32(data+44);
     double fraction=TlkGetDouble(data+32);
@@ -1841,7 +1870,11 @@ int TlkAudioValidateHistory(const uint8_t *data,size_t size) {
        native!=TlkNativeAudioHistorySize() || native>size-AUDIO_HEADER || nested!=size-AUDIO_HEADER-native)return 0;
     if(TlkGet32(data+112)>3 || TlkGet32(data+116)>1)return 0;
     if(TlkGet32(data+124)>1)return 0;
-    if(TlkGet32(data+128)>50 || TlkGet32(data+132)>3 || TlkGet32(data+136)>31)return 0;
+    if(TlkGet32(data+12)&512){
+        unsigned actor=TlkGet32(data+132);
+        if((TlkGet32(data+12)&256) || TlkGet32(data+128)>TLK_DESTINY_SPEECH_SECOND_DELAY ||
+           actor<0xb293 || actor>=0xdc13 || ((actor-0xb213)&127) || TlkGet32(data+136)>1)return 0;
+    }else if(TlkGet32(data+128)>50 || TlkGet32(data+132)>3 || TlkGet32(data+136)>31)return 0;
     uint8_t hash[32];
     return TlkNativeAudioValidateHistory(data+AUDIO_HEADER,native) &&
         (!nested || TlkMdSoundValidateState(data+AUDIO_HEADER+native,nested)) &&
@@ -1863,7 +1896,12 @@ int TlkAudioLoadHistory(const uint8_t *data,size_t size) {
     if(compatible) {
         unsigned flags=TlkGet32(data+12);music_active=!!(flags&1);pending_stop=!!(flags&2);menu_fx=!!(flags&4);cant_wait_fx=!!(flags&8);graveyard_fx=!!(flags&16);hunt_fx=!!(flags&32);prepared_fx=!!(flags&64);
         music_entry_seen=!!(flags&128);exile_exit_fx=!!(flags&256);
-        exile_exit_age=TlkGet32(data+128);exile_exit_phase=TlkGet32(data+132);exile_exit_delay=TlkGet32(data+136);
+        destiny_speech_clear();
+        if(flags&512){
+            destiny_speech_active=1;destiny_speech_age=TlkGet32(data+128);
+            destiny_speech_actor=TlkGet32(data+132);destiny_speech_second=TlkGet32(data+136);
+            exile_exit_age=exile_exit_phase=exile_exit_delay=0;
+        }else{exile_exit_age=TlkGet32(data+128);exile_exit_phase=TlkGet32(data+132);exile_exit_delay=TlkGet32(data+136);}
         fx_tail=TlkGet32(data+16);music_track=TlkGet32(data+20);music_scene=TlkGet32(data+24);
         death_phase=TlkGet32(data+112);battle_ready=TlkGet32(data+116);
         cw_reaction_rebuild();

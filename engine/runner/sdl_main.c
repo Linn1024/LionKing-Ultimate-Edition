@@ -138,7 +138,7 @@ static uint32_t s_screen[kWidth * kHeight];
 
 #define NTSC_FPS (21477272.0 / 357366.0) /* 60.0988 */
 
-/* РІвЂќР‚РІвЂќР‚ PNG writer (stored deflate), same as headless_main.c РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── PNG writer (stored deflate), same as headless_main.c ───────────────── */
 static uint32_t s_crc_table[256];
 static void CrcInit(void) {
     for (uint32_t n = 0; n < 256; n++) {
@@ -201,7 +201,7 @@ static int WritePng(const char *path, const uint8_t *px, int w, int h, int pitch
     return ok;
 }
 
-/* РІвЂќР‚РІвЂќР‚ Input tape (same semantics as tlk_headless) РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Input tape (same semantics as tlk_headless) ────────────────────────── */
 static uint16_t *s_tape;
 static size_t s_tape_frames;
 static int s_polled;
@@ -258,7 +258,7 @@ static void PollHook(CpuState *cpu, uint32_t pc24) {
 extern void (*g_tlk_aot_pad_read_hook)(void);
 static void PollHookCompiled(void) { PollHook(&g_cpu, 0xC0A07C); }
 
-/* РІвЂќР‚РІвЂќР‚ Config РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Config ─────────────────────────────────────────────────────────────── */
 /* Runtime pad bits: 0 B, 1 Y, 2 Select, 3 Start, 4 Up, 5 Down, 6 Left,
  * 7 Right, 8 A, 9 X, 10 L, 11 R. Binding 12 is turbo (hold to fast-forward),
  * not a pad bit. */
@@ -298,7 +298,11 @@ static const char *const kShaders[][2] = {
     { "assets/shaders/crt-soft.glslp", "CRT" },
     { "assets/shaders/lcd-grid.glslp", "LCD grid" },
     { "assets/shaders/sharp.glslp", "Sharpen" },
-    { "assets/shaders/warm-composite.glslp", "Composite" } };
+    { "assets/shaders/warm-composite.glslp", "Composite" },
+    { "assets/shaders/bizhawk-3xbrz-linear.glslp", "3xBRZ Linear (BizHawk)" },
+    { "assets/shaders/bizhawk-hq2x.glslp", "HQ2x (BizHawk)" },
+    { "assets/shaders/bizhawk-scanlines.glslp", "Scanlines (BizHawk)" },
+    { "assets/shaders/bizhawk-bicubic.glslp", "Bicubic (BizHawk)" } };
 enum { kShaderCount = sizeof kShaders / sizeof kShaders[0] };
 /* HD Mode 7 (snesrecomp's PpuBindMode7HdSurface): 0 = off, else 2..4. The PPU
  * also draws each line into s_hd at that scale, resampling Mode 7 lines at the
@@ -461,7 +465,7 @@ static void SlotPath(int slot, char *out, size_t n) {
     SidePath(name, out, n);
 }
 
-/* РІвЂќР‚РІвЂќР‚ Overlay: 8x8 text in the 256x224 logical space РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Overlay: 8x8 text in the 256x224 logical space ────────────────────── */
 static char s_toast[256];
 static uint64_t s_toast_until;
 
@@ -504,7 +508,8 @@ static SDL_Window *win;
 static SDL_Renderer *ren;      /* plain SDL presenter, when OpenGL is off or unavailable */
 static SDL_Texture *tex;
 static struct RendererFuncs s_gl;
-static int s_gl_on;            /* the OpenGL presenter owns the window */
+static int s_gl_on;
+static int s_video_start_opengl;            /* the OpenGL presenter owns the window */
 static SDL_AudioStream *astream;
 static int pace = 1, running = 1;
 static long frame;
@@ -586,7 +591,7 @@ static void DrawToast(void) {
     for (int line=0;line<count;line++) DrawText(8,y+4+line*10,lines[line]);
 }
 
-/* РІвЂќР‚РІвЂќР‚ No ROM: the prompt in the game window РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── No ROM: the prompt in the game window ─────────────────────────────── */
 static int s_rom_prompt;            /* Present() shows the ROM prompt instead of the game */
 static const char *s_rom_note[2];   /* up to two lines under it (wrong file, no dialog) */
 
@@ -697,7 +702,7 @@ static void DrawRomPrompt(void) {
     DrawCentered(180, "Esc quits.", 1);
 }
 
-/* РІвЂќР‚РІвЂќР‚ Practice mode РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Practice mode ──────────────────────────────────────────────────────── */
 /* Reads WRAM only, never writes it, so emulation and recordings are the same
  * with it on or off. Timing follows SBDWolf's practice hack (timer.asm): the
  * level timer starts when the fade-in after a level load ends, counts frames
@@ -1012,7 +1017,7 @@ static void PrEnable(void) {
     pr.st = PR_IDLE;
 }
 
-/* РІвЂќР‚РІвЂќР‚ Presenting РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Presenting ─────────────────────────────────────────────────────────── */
 static void ApplyVideoConfig(void) { TlkVideoConfig(s_shader, s_aspect, s_smooth); }
 
 /* sw x sh is the presented picture, native or HD; the maths runs on the
@@ -1306,6 +1311,7 @@ static void SetVsync(void) {
 static int OpenVideo(void) {
     Uint32 flags = SDL_WINDOW_RESIZABLE | (s_fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
     int w=s_window_width?s_window_width:WindowWidth(),h=s_window_height?s_window_height:kHeight*s_scale;
+    s_video_start_opengl=s_opengl;
     ApplyVideoConfig();
     if (s_opengl) {
         OpenGLRenderer_Create(&s_gl);   /* sets the GL 3.3 core attributes */
@@ -1344,7 +1350,7 @@ static int OpenVideo(void) {
     return 1;
 }
 
-/* РІвЂќР‚РІвЂќР‚ Live input РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Live input ─────────────────────────────────────────────────────────── */
 static uint16_t s_kbd_pad;
 static SDL_Gamepad *s_pad;
 static int s_pad_hold;   /* after the menu closes: ignore the pad until all of it is released */
@@ -1391,7 +1397,7 @@ static int TurboHeld(void) {
     return s_turbo_held || (s_pad && !s_pad_hold && SDL_GetGamepadButton(s_pad, s_pad_btn[kTurbo]));
 }
 
-/* РІвЂќР‚РІвЂќР‚ Settings menu: recomp-ui's runtime menu РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── Settings menu: recomp-ui's runtime menu ───────────────────────────── */
 /* The rows, in order; sections appear in first-use order. Every change is
  * applied at once and saved to the ini (the menu calls MenuSave after it). */
 enum {
@@ -1401,7 +1407,7 @@ enum {
     R_LEVEL, R_INVUL, R_START, R_PRACTICE,
     R_BIND0, R_RESET = R_BIND0 + kBindings,
     R_RESUME, R_QUIT,
-    R_ABOUT, R_AUTHOR, R_SOURCE, R_RESOURCES, R_RESOLUTION, R_COUNT };
+    R_ABOUT, R_AUTHOR, R_SOURCE, R_RESOURCES, R_RESOLUTION, R_SCREEN_EFFECTS, R_COUNT };
 
 static const char *const kAspectChoices[] = { "4:3 TV", "8:7 pixel", "1:1" };
 static const char *const kBindNames[kBindings] = {
@@ -1423,6 +1429,8 @@ static char s_start_label[48];
 #define BIND_ROW(i) MENU_ROW("tlk.bind", "Controls", s_bind_label[i], \
     "Enter, then the new key or button.", ACTION, 0, 0, 0, NULL, 0)
 static RecompRuntimeUiItem s_rows[R_COUNT] = {
+    [R_SCREEN_EFFECTS] = MENU_ROW("tlk.screen_effects", "Graphics", "Enable screen effects",
+        "Close and reopen the game after changing this option.", BOOL, 0, 1, 1, NULL, 0),
     [R_SCALE] = MENU_ROW(RECOMP_RUNTIME_UI_KEY_WINDOW_SCALE, "Display", "Window scale",
                          "Window height, times 224 pixels.", INT, 1, 8, 1, NULL, 0),
     [R_FULLSCREEN] = MENU_ROW("tlk.fullscreen", "Display", "Fullscreen",
@@ -1528,6 +1536,7 @@ static int MenuGet(void *ctx, const RecompRuntimeUiItem *item, int *v) {
     case R_ASPECT: *v = SnesDisplayAspect_Clamp(s_aspect); break;
     case R_DIM: *v = s_menu_dim; break;
     case R_OPACITY: *v = s_menu_opacity; break;
+    case R_SCREEN_EFFECTS: *v=s_opengl; return 1;
     case R_SHADER: { int sh = ShaderIndex(); *v = sh >= 0 ? sh : kShaderCount; break; }
     case R_HD_MODE7: *v = s_hd_mode7 ? s_hd_mode7 - 1 : 0; break;
     case R_WIDE: *v = s_wide; break;
@@ -1555,10 +1564,11 @@ static int MenuSet(void *ctx, const RecompRuntimeUiItem *item, int v) {
     case R_ASPECT: s_aspect = v; ApplyVideoConfig(); SizeWindow(); break;
     case R_DIM: s_menu_dim = v; ApplyBackdrop(); break;
     case R_OPACITY: s_menu_opacity = v; ApplyBackdrop(); break;
+    case R_SCREEN_EFFECTS: s_opengl=v!=0; break;
     case R_SHADER:
         snprintf(s_shader, sizeof s_shader, "%s", v < kShaderCount ? kShaders[v][0] : s_shader_custom);
         ApplyVideoConfig();
-        if (s_gl.Reconfigure) s_gl.Reconfigure();
+        if (s_gl_on && s_gl.Reconfigure) s_gl.Reconfigure();
         break;
     case R_HD_MODE7: s_hd_mode7 = v ? v + 1 : 0; ApplyHdMode7(); break;
     case R_WIDE: s_wide = v; TlkWideEnable(s_wide != 0 || TlkResourcesPresentation() || TlkResourcesHasMd()); if(v!=3)SizeWindow(); break;
@@ -1594,7 +1604,12 @@ static int MenuEnabled(void *ctx, const RecompRuntimeUiItem *item) {
 }
 
 static int MenuGetText(void *ctx,const RecompRuntimeUiItem *item,char *out,size_t size) {
-    (void)ctx;if(item!=&s_rows[R_RESOLUTION])return 0;
+    (void)ctx;
+    if(item==&s_rows[R_SCREEN_EFFECTS]){
+        const char *state=s_opengl!=s_video_start_opengl?"restart":s_gl_on?"active":s_video_start_opengl?"unavailable":"off";
+        snprintf(out,size,"%s",state);return 1;
+    }
+    if(item!=&s_rows[R_RESOLUTION])return 0;
     int w=s_window_width?s_window_width:WindowWidth(),h=s_window_height?s_window_height:kHeight*s_scale;
     if(win&&!s_fullscreen)SDL_GetWindowSize(win,&w,&h);
     snprintf(out,size,"%d x %d",w,h);return 1;
@@ -1888,7 +1903,7 @@ static void HandleEvent(const SDL_Event *ev) {
     }
 }
 
-/* РІвЂќР‚РІвЂќР‚ --selftest-remap: drive the menu with synthetic SDL events РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── --selftest-remap: drive the menu with synthetic SDL events ─────────── */
 static int s_st_fail;
 static void StCheck(int ok, const char *what) {
     printf("remap_selftest: %s %s\n", ok ? "ok  " : "FAIL", what);
@@ -2112,7 +2127,7 @@ static int RemapSelfTest(void) {
     return s_st_fail ? 1 : 0;
 }
 
-/* РІвЂќР‚РІвЂќР‚ WAV recorder РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚ */
+/* ── WAV recorder ───────────────────────────────────────────────────────── */
 static FILE *s_wav;
 static uint32_t s_wav_frames, s_wav_limit;
 static void Le32(FILE *f, uint32_t v) { uint8_t b[4] = { (uint8_t)v, (uint8_t)(v >> 8), (uint8_t)(v >> 16), (uint8_t)(v >> 24) }; fwrite(b, 1, 4, f); }
@@ -2584,6 +2599,8 @@ int main(int argc, char **argv) {
             spawn_height=dh/zoom;if(spawn_height<128)spawn_height=128;if(spawn_height>TLK_WIDE_MAX_VIEW_HEIGHT)spawn_height=TLK_WIDE_MAX_VIEW_HEIGHT;
         }
         TlkCameraSetWidth(camera_width);
+        /* Runtime resizing already changed this width; keep Apply baselines current. */
+        TlkCameraProfileChanged();
         int lead=(TlkCameraActive() || (s_wide && s_wide_spawn)) && camera_width>256?(camera_width-256)/2:0;
         TlkWideSetSpawnLead(lead);
         TlkWideSetSpawnHeight(s_wide && s_wide_spawn?spawn_height:224);

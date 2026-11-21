@@ -54,6 +54,7 @@ void TlkMdScenePalette(unsigned level, const uint16_t *native_cgram, int md_pale
 /* Prepared original scene colors, independent of scenery source selection. */
 int TlkMdScenePaletteColors(unsigned level, uint16_t colors[64]);
 uint16_t TlkMdSceneColor(unsigned index, int external, uint16_t original);
+uint16_t TlkMdSceneModeColor(unsigned index,int external,uint16_t original,int md);
 /* Bounded decoder, also exercised against malformed streams by unit tests. */
 int TlkMdDecompress(const uint8_t *rom, size_t size, size_t offset,
                     uint8_t *out, size_t capacity, size_t *written);

@@ -281,6 +281,10 @@ if(TLK_BUILD_HOSTS)
         ${TLK_RUNNER_DIR}/host_contract.c)
 
     function(tlk_configure_target target)
+        if(MINGW)
+            target_sources(${target} PRIVATE ${TLK_RUNNER_DIR}/tlk_recording_health.c)
+            target_link_options(${target} PRIVATE "-Wl,--wrap=TlkAudioFrame")
+        endif()
         target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/generated/resources")
         target_include_directories(${target} PRIVATE
             ${SNESRECOMP_RUNNER_INCLUDE_DIRS}
@@ -446,6 +450,10 @@ if(TLK_BUILD_HOSTS)
     # OpenGL presenter + GLSL presets (CC0), staged to build/assets/shaders.
     snesrecomp_target_opengl(tlk_sdl)
     snesrecomp_target_shader_presets(tlk_sdl)
+    add_custom_command(TARGET tlk_sdl POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/runner/shaders"
+            "$<TARGET_FILE_DIR:tlk_sdl>/assets/shaders")
     tlk_use_patched_target_sources(tlk_sdl)
     # In-game settings menu: recomp-ui's runtime menu (MIT, submodule), drawn
     # with Dear ImGui over the OpenGL presenter (runner/tlk_menu_imgui.cpp).
@@ -467,6 +475,11 @@ if(TLK_BUILD_HOSTS)
         "assets/fonts/LatoLatin-Regular.ttf=${RECOMP_UI_ROOT}/assets/common/fonts/LatoLatin-Regular.ttf")
     foreach(f IN LISTS tlk_shader_files)
         list(APPEND tlk_embedded "assets/shaders/${f}=${tlk_shader_dir}/${f}")
+    endforeach()
+    file(GLOB_RECURSE tlk_game_shader_files RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/runner/shaders"
+         CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/runner/shaders/*")
+    foreach(f IN LISTS tlk_game_shader_files)
+        list(APPEND tlk_embedded "assets/shaders/${f}=${CMAKE_CURRENT_SOURCE_DIR}/runner/shaders/${f}")
     endforeach()
     tlk_embed_assets(tlk_sdl "${CMAKE_CURRENT_BINARY_DIR}/tlk_assets_data.c" ${tlk_embedded})
     # Windows: the app icon (packaging/icon, tools/make_icon.py).
@@ -601,6 +614,7 @@ if(TLK_BUILD_HOSTS)
     # Shader presets are looked up next to the binary (assets/shaders/...).
     install(DIRECTORY ${SNESRECOMP_ROOT}/runner/assets/shaders
             DESTINATION ${CMAKE_INSTALL_BINDIR}/assets)
+    install(DIRECTORY runner/shaders DESTINATION ${CMAKE_INSTALL_BINDIR}/assets)
     install(FILES packaging/README.txt packaging/LICENSE-NOTES.txt
             DESTINATION ${CMAKE_INSTALL_DOCDIR})
     install(FILES snesrecomp/LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR}

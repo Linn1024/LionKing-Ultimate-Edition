@@ -18,9 +18,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--version', default='preview7004')
+    parser.add_argument('--archive-name', help='Optional player-facing ZIP filename.')
     args = parser.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', args.version):
         parser.error('Use a simple release version without path separators.')
+    if args.archive_name and (not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.zip', args.archive_name)):
+        parser.error('Use a simple ZIP filename without path separators.')
     out = (args.output or ROOT/'build'/('share-'+args.version)).resolve()
     if not out.is_relative_to((ROOT/'build').resolve()):
         parser.error('Put release staging under ignored build/.')
@@ -54,25 +57,24 @@ def main():
     for source in sorted((ROOT/'dist/licenses').glob('*')):
         if source.is_file():
             copy(source, Path('dist/licenses')/source.name)
-    for name in ['Setup.ps1', 'RunInstalledPreview.ps1']:
+    for name in ['Setup.ps1', 'RunInstalledPreview.ps1', 'RunBizHawkShader.ps1']:
         copy(ROOT/'scripts'/name, Path('scripts')/name)
     for name in ['native', 'full-genesis', 'snes-visuals-genesis', 'the-best']:
         copy(ROOT/'profiles'/(name+'.ini'), Path('profiles')/(name+'.ini'))
-    for name in ['Setup.cmd', 'Play The Best.cmd', 'Play Full Genesis.cmd',
-                 'Play SNES Visuals with Genesis Gameplay.cmd', 'Record Video.cmd']:
+    for name in ['Setup.cmd', 'Play The Best.cmd', 'Play The Best - BizHawk Shader.cmd', 'Play Full Genesis.cmd',
+                 'Play SNES Visuals with Genesis Gameplay.cmd']:
         copy(ROOT/name, name)
     # Public default Play uses The best; the developer's existing Play is intact.
     copy(ROOT/'Play The Best.cmd', 'Play.cmd')
     copy(package/'LionKing.exe', 'dist/LionKing.exe')
-    copy(ROOT/'tools/record_video.py', 'tools/record_video.py')
     copy(ROOT/'docs/SHARING.md', 'README.md')
     copy(ROOT/'CREDITS.md', 'CREDITS.md')
-    copy(ROOT/'docs/VIDEO-SCRIPT.md', 'VIDEO-SCRIPT.md')
     notice = stage/relative/'LICENSE-NOTES.txt'
     notice.write_text('Unofficial noncommercial development preview. Supply your own SNES USA and Mega Drive World ROMs.\n'
                       'No ROM dumps or extracted game artwork/music are included. The player contains translated game program code.\n'
                       'Runtime components include snesrecomp (PolyForm Noncommercial), recomp-ui/ImGui (MIT), SDL3 (zlib),\n'
                       'and Genesis Plus GX (its included noncommercial license). Preserve all licenses and matching backend source.\n'
+                      'Optional BizHawk-style shader sources/notices, including GPL 3xBRZ, are in assets/shaders beside the player.\n'
                       'See README.md and the licenses/ and source/ directories.\n')
     files[notice.relative_to(stage).as_posix()] = digest(notice)
     for path in stage.rglob('*'):
@@ -83,7 +85,7 @@ def main():
     # A package manifest lists every shipped file; development package provenance
     # remains separate from the file-integrity manifest for this public ZIP.
     (stage/'FILES.sha256').write_text(''.join(f'{sha}  {name}\n' for name, sha in sorted(files.items())))
-    archive = out/('LionKing-Ultimate-Edition-Windows-'+args.version+'.zip')
+    archive = out/(args.archive_name or ('LionKing-Ultimate-Edition-Windows-'+args.version+'.zip'))
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for path in sorted(stage.rglob('*')):
             if path.is_file():

@@ -19,6 +19,7 @@ and contributors** is the upstream PC-port foundation.
 - snesrecomp: recompiler/runtime foundation.
 - recomp-ui and Dear ImGui: menu framework and UI components.
 - SDL3: windowing, input and audio.
+- Optional shader credits, source and licenses: `assets/shaders` beside the player.
 - Genesis Plus GX: included backend, with its matching source and license.
 - Original game: Disney / Virgin Interactive and its original developers.
 

@@ -2,8 +2,8 @@
 #define TLK_BROWSER_SCENE_EXAMPLES_H
 #include <string.h>
 static int TlkBrowserScenePicker(const char *id) {
- return !strcmp(id,"graphics.scenery")||!strcmp(id,"graphics.scenery.foreground")||
-        !strcmp(id,"graphics.scenery.background")||!strcmp(id,"graphics.scenery.palettes");
+ return !strcmp(id,"graphics.scenery")||!strncmp(id,"graphics.scenery.foreground",27)||
+        !strncmp(id,"graphics.scenery.background",27)||!strcmp(id,"graphics.scenery.palettes");
 }
 static int TlkBrowserSceneExample(const char *id,unsigned requested) {
  if(TlkBrowserScenePicker(id))return requested<10?(int)requested:9;

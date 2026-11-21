@@ -36,11 +36,19 @@ def main():
     start.add_argument('--start-state', type=Path, help='Begin at a local saved scene; no movie is played.')
     parser.add_argument('--width', type=int, default=1280)
     parser.add_argument('--height', type=int, default=720)
-    parser.add_argument('--original-view', action='store_true', help='Use the selected console framing.')
+    view = parser.add_mutually_exclusive_group()
+    view.add_argument('--original-view', dest='original_view', action='store_true', default=True,
+                      help='Use the selected console framing (default).')
+    view.add_argument('--expanded-view', dest='original_view', action='store_false',
+                      help='Reveal more level and enable expanded enemy activation.')
     parser.add_argument('--desktop', action='store_true', help='Include the primary desktop and F12 window.')
     parser.add_argument('--fps-counter', action='store_true')
+    parser.add_argument('--max-health', action='store_true',
+                        help='Start with full health based on upgrades available before this level.')
     parser.add_argument('--ffmpeg', help='Path to ffmpeg.exe (otherwise PATH or tools/ffmpeg.exe).')
     args = parser.parse_args()
+    if args.max_health and (args.level is None or args.level == 3 or args.level > 9):
+        parser.error('--max-health requires a fresh main level with a regular health meter.')
     if os.name != 'nt':
         parser.error('Recording currently requires Windows.')
     if not (640 <= args.width <= 7680 and 480 <= args.height <= 4320):
@@ -75,24 +83,38 @@ def main():
     (folder/'game.ini').write_text(f'opengl = 0\nscale = 3\nwindow_size = {args.width} x {args.height}\n'
                                  'fullscreen = 0\nvsync = 0\naudio = 1\nvolume = 10\n'
                                  'widescreen = '+('off' if args.original_view else 'adaptive')+
-                                 '\nwidescreen_enemies = out of view\n')
+                                 '\nwidescreen_enemies = '+('as the game' if args.original_view else 'out of view')+'\n')
     command += ['--config', str(folder/'game.ini'), '--resource-profile', str(folder/'resources.ini')]
     env = {k: v for k, v in os.environ.items() if not k.startswith(('TLK_', 'SDL_', 'SNESRECOMP_'))}
     env.update(TLK_SMOOTH_UPDATES='1', TLK_FPS_COUNTER=str(int(args.fps_counter)),
                TLK_FPS_LOG=str(folder/'updates.csv'))
     starting_field = 0
+    starting_health = None
     if args.level is not None:
         print('Preparing the selected level before recording...', flush=True)
         state = folder/'start.state'
-        prepare = command + ['--practice-level', str(args.level), '--frames', '1700',
-                             '--save-at', '1700', str(state), '--no-record', '--no-pace', '--no-audio']
+        # Pride Rock finishes its opening later than the other main levels.
+        prepared_field = (2000 if args.level == 9 else 1702) if args.max_health else 1700
+        prepare = command + ['--practice-level', str(args.level), '--frames', str(prepared_field),
+                             '--save-at', str(prepared_field), str(state), '--no-record', '--no-pace', '--no-audio']
+        prepare_env = dict(env, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
+        if args.max_health:
+            prepare_env.update(TLK_RECORD_START_MAX_HEALTH='1', TLK_RECORD_HEALTH_AT='1700')
         with (folder/'prepare.log').open('wb') as log:
             subprocess.run(prepare, cwd=ROOT,
-                           env=dict(env, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'),
+                           env=prepare_env,
                            stdout=log, stderr=subprocess.STDOUT, check=True, timeout=60,
                            creationflags=subprocess.CREATE_NO_WINDOW)
+        if args.max_health:
+            prepared = (folder/'prepare.log').read_text(errors='replace')
+            receipt = re.search(r'recording_start_health .* level=(\d+) .* max=(\d+) hp=(\d+)', prepared)
+            if (not receipt or int(receipt[1]) != args.level or receipt[2] != receipt[3]
+                    or int(receipt[2]) not in (4, 6, 8, 10, 12)):
+                raise RuntimeError('The player did not prepare maximum health. Update the installed player.')
+            starting_health = int(receipt[2])
+            print(f'Starting with {starting_health}/{starting_health} HP for this level.', flush=True)
         command += ['--load', str(state)]
-        starting_field = 1700
+        starting_field = prepared_field
     elif args.start_state:
         state = args.start_state.resolve()
         raw = state.read_bytes()
@@ -206,7 +228,9 @@ def main():
         desktop=args.desktop, audio='mixed game output; start-time aligned; no microphone/system audio',
         audio_trim_seconds=offset, game_exit_code=game.returncode, video=str(folder/'video.mp4'),
         starting_field=starting_field, window=[args.width,args.height],
-        enemy_spawning='out of view', movie_playback=False), indent=2))
+        view='original' if args.original_view else 'expanded',
+        enemy_spawning='as the game' if args.original_view else 'out of view', movie_playback=False,
+        starting_health=starting_health), indent=2))
     recording = folder/'input.rec'
     if starting_field and recording.is_file():
         recording.write_bytes(bytes(starting_field*2)+recording.read_bytes())

@@ -222,6 +222,22 @@ static bool Write(const char *id,const char *path) {
  unsigned level=g_ram[0x1ff9e]|(unsigned)g_ram[0x1ff9f]<<8;
  if(Shared(id,path,level))return true;
  if(!s&&TlkBrowserSceneExample(id,level)==(int)level) {
+  /* Cache every artwork/colour combination, as for sprites. The live browser
+   * can then compare one child while respecting the other child's choice. */
+  const char *family=!strncmp(id,"graphics.scenery.foreground",27)?"graphics.scenery.foreground":!strncmp(id,"graphics.scenery.background",27)?"graphics.scenery.background":nullptr;
+  if(family) {
+   int branch=TlkResourcesFind(family),frames=TlkResourcesFind((std::string(family)+".frames").c_str()),palette=TlkResourcesFind((std::string(family)+".palette").c_str());
+   if(branch<0||frames<0||palette<0)return false;
+   int old_frames=TlkResourcesChoice(frames,1),old_palette=TlkResourcesChoice(palette,1);
+   std::vector<uint32_t> image(320*224*4);bool ok=true;
+   for(int axis=0;axis<4;axis++) {
+    TlkResourcesSet(frames,axis&2?TLK_SOURCE_MD:TLK_SOURCE_SNES);TlkResourcesSet(palette,axis&1?TLK_SOURCE_MD:TLK_SOURCE_SNES);
+    TlkResourcesPreviewBegin(branch,TLK_SOURCE_SNES);ok=TlkWidePreview(image.data()+axis*320*224,320)&&ok;TlkResourcesPreviewEnd();
+    for(unsigned i=0;i<320*224;i++)image[axis*320*224+i]|=0xff000000u;
+   }
+   TlkResourcesSet(frames,old_frames);TlkResourcesSet(palette,old_palette);
+   return ok&&Save(path,320,224,1,4,image);
+  }
   std::vector<uint32_t> image(320*224*2);int node=TlkResourcesFind(id);if(node<0)return false;
   for(int source=0;source<2;source++){TlkResourcesPreviewBegin(node,source?TLK_SOURCE_MD:TLK_SOURCE_SNES);bool ok=TlkWidePreview(image.data()+source*320*224,320);TlkResourcesPreviewEnd();if(!ok)return false;for(unsigned i=0;i<320*224;i++)image[source*320*224+i]|=0xff000000u;}
   SDL_IOStream *f=SDL_IOFromFile(path,"wb");if(!f)return false;uint32_t header[5]={0x33474c54,320,224,1,2};bool ok=SDL_WriteIO(f,header,sizeof header)==sizeof header&&SDL_WriteIO(f,image.data(),image.size()*4)==image.size()*4;SDL_CloseIO(f);return ok;

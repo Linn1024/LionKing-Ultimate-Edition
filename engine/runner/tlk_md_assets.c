@@ -27,7 +27,7 @@ static struct {
     uint16_t initial[2][64], target[100];
     int ready;
 } cant_wait;
-static uint16_t native_cache[128], mapped_native[128], mapped_external[64];
+static uint16_t native_cache[128], mapped_native[2][128], mapped_external[2][64];
 static int cache_level=-1, cache_mode=-1;
 static unsigned be16(const uint8_t *p) { return (unsigned)p[0]*256+p[1]; }
 static uint32_t be32(const uint8_t *p) { return (uint32_t)be16(p)<<16 | be16(p+2); }
@@ -628,7 +628,8 @@ static unsigned difference(unsigned a,unsigned b) {
 void TlkMdScenePalette(unsigned level, const uint16_t *cgram, int md_palette) {
     level=scene_index(level);
     if (!TlkMdSceneReady(level) || !cgram) { cache_level=-1; return; }
-    if (cache_level==(int)level && cache_mode==md_palette && !memcmp(native_cache,cgram,sizeof native_cache)) return;
+    cache_mode=!!md_palette;
+    if (cache_level==(int)level && !memcmp(native_cache,cgram,sizeof native_cache)) return;
     const MdScene *s=&scenes[level];
     memcpy(native_cache,cgram,sizeof native_cache); cache_level=(int)level; cache_mode=md_palette;
     for (unsigned i=0;i<128;i++) {
@@ -637,10 +638,10 @@ void TlkMdScenePalette(unsigned level, const uint16_t *cgram, int md_palette) {
             unsigned d=difference(cgram[i],s->palette[j]);
             if (d<best) { best=d; index=j; }
         }
-        mapped_native[i]=md_palette ? s->palette[index] : cgram[i];
+        mapped_native[0][i]=cgram[i];mapped_native[1][i]=s->palette[index];
         /* Bonus jungle/wood palettes1/2 share indexed meanings. RGB-nearest
          * wrongly maps their dark blues to teal and creates tile boundaries. */
-        if(level>=10 && level<=13 && i>=16 && i<48 && md_palette)mapped_native[i]=s->palette[i];
+        if(level>=10 && level<=13 && i>=16 && i<48)mapped_native[1][i]=s->palette[i];
     }
     for (unsigned i=0;i<64;i++) {
         unsigned best=~0u, index=0;
@@ -648,8 +649,8 @@ void TlkMdScenePalette(unsigned level, const uint16_t *cgram, int md_palette) {
             unsigned d=difference(s->palette[i],cgram[j]);
             if (d<best) { best=d; index=j; }
         }
-        mapped_external[i]=md_palette ? s->palette[i] : cgram[index];
-        if(level>=10 && level<=13 && i>=16 && i<48 && !md_palette)mapped_external[i]=cgram[i];
+        mapped_external[0][i]=cgram[index];mapped_external[1][i]=s->palette[i];
+        if(level>=10 && level<=13 && i>=16 && i<48)mapped_external[0][i]=cgram[i];
     }
 }
 int TlkMdScenePaletteColors(unsigned level, uint16_t colors[64]) {
@@ -660,8 +661,12 @@ int TlkMdScenePaletteColors(unsigned level, uint16_t colors[64]) {
 }
 uint16_t TlkMdSceneColor(unsigned index, int external, uint16_t original) {
     if (cache_level<0) return original;
-    if (external) return index<64 ? mapped_external[index] : original;
-    return index<128 ? mapped_native[index] : original;
+    if (external) return index<64 ? mapped_external[!!cache_mode][index] : original;
+    return index<128 ? mapped_native[!!cache_mode][index] : original;
+}
+uint16_t TlkMdSceneModeColor(unsigned index,int external,uint16_t original,int md) {
+    if(cache_level<0)return original;
+    return external?(index<64?mapped_external[!!md][index]:original):(index<128?mapped_native[!!md][index]:original);
 }
 #include "tlk_md_assets_cache.inc"
 

@@ -18,6 +18,8 @@ extern "C" {
 #include "tlk_wide.h"
 #include "snes/apu.h"
 #include "snes/ppu.h"
+#include "cpu_state.h"
+#include "snes/interp_bridge.h"
 extern Snes *g_snes;
 extern uint8_t g_ram[0x20000];
 void TlkBrowserAuditEffects(const char *path);
@@ -31,7 +33,7 @@ bool __real_TlkWideEndFrame(const uint8_t *stock);
 namespace {
 std::wstring Wide(const std::string &s){int n=MultiByteToWideChar(CP_UTF8,0,s.c_str(),-1,nullptr,0);std::wstring w(n? n-1:0,0);if(n>1)MultiByteToWideChar(CP_UTF8,0,s.c_str(),-1,&w[0],n);return w;}
 std::wstring Quote(const std::wstring &s){std::wstring out=L"\"";unsigned slash=0;for(wchar_t c:s){if(c==L'\\'){slash++;continue;}if(c==L'\"')out.append(slash*2+1,L'\\');else out.append(slash,L'\\');slash=0;out+=c;}out.append(slash*2,L'\\');return out+L'\"';}
-struct Job {HANDLE process=nullptr;Uint64 began=0;std::string cache,temp,profile,config,workspace;};
+struct Job {HANDLE process=nullptr;Uint64 began=0;unsigned timeout=20000;std::string cache,temp,profile,config,workspace,targets;};
 void Remove(const std::string &path){if(!path.empty())SDL_RemovePath(path.c_str());}
 void Reason(char *out,size_t size,const char *s){if(out&&size)std::snprintf(out,size,"%s",s);}
 bool ValidWave(const char *path,SDL_AudioSpec *spec,Uint8 **samples,Uint32 *bytes) {
@@ -58,12 +60,21 @@ bool Wave(const char *path,const std::vector<int16_t>&pcm) {
     bool ok=SDL_WriteIO(f,h,sizeof h)==sizeof h&&SDL_WriteIO(f,pcm.data(),pcm.size()*2)==pcm.size()*2;SDL_CloseIO(f);return ok;
 }
 }
+/* Isolated audition only: let the original loader upload the speech bank
+ * requested by C1AA95. The live player's program and memory are untouched. */
+static void MufasaPreviewBank(CpuState *cpu,uint32_t pc) {
+    if(pc==0xc22b36 && (g_ram[0x1ff9e]|g_ram[0x1ff9f]<<8)==6)cpu->A=23;
+}
 extern "C" bool __wrap_TlkWideEndFrame(const uint8_t *stock) {
     bool result=__real_TlkWideEndFrame(stock);
     static const char *target=SDL_getenv("TLK_BROWSER_NATIVE_LEVEL"),*path=SDL_getenv("TLK_BROWSER_NATIVE_OUT");
     static unsigned stable=0;
     static const char *gallery=SDL_getenv("TLK_BROWSER_GALLERY_ID"),*effect=SDL_getenv("TLK_BROWSER_NATIVE_EVENT");
     if(!target||!path)return result;
+    static bool mufasa_bank_hook=false;
+    if(effect&&std::atoi(effect)==257&&!mufasa_bank_hook){
+        mufasa_bank_hook=true;interp_bridge_add_pre_opcode_hook(0xc22b36,MufasaPreviewBank);
+    }
     int level=std::atoi(target);if((level<0||level>13)&&level!=14)std::exit(92);
     unsigned current=g_ram[0x1ff9e]|(unsigned)g_ram[0x1ff9f]<<8;
     unsigned descriptor=g_ram[0xdf]|(unsigned)g_ram[0xe0]<<8|(unsigned)g_ram[0xe1]<<16;
@@ -121,7 +132,7 @@ extern "C" bool __wrap_TlkWideEndFrame(const uint8_t *stock) {
         if(offset>0x40 || g_ram[0x1fbf]!=255 || g_ram[0x1fc0]!=255){stable--;return result;}
         unsigned at=0x1f6f+offset;
         if(stable==85){uint8_t packet[4]={1,0x82,0xe0,0};std::memcpy(g_ram+at,packet,4);offset+=4;}
-        else {uint8_t packet[8]={2,(uint8_t)std::atoi(effect),0,0xe0,0,0x80,0x78,0};std::memcpy(g_ram+at,packet,8);offset+=8;}
+        else {uint8_t packet[8]={2,(uint8_t)(std::atoi(effect)==257?2:std::atoi(effect)),0,0xe0,0,0x80,0x78,0};std::memcpy(g_ram+at,packet,8);offset+=8;}
         g_ram[0x1f6d]=(uint8_t)offset;g_ram[0x1f6e]=(uint8_t)(offset>>8);
     }
     if(gallery&&stable>=(gallery_kind==6?10:120)){bool ok=BrowserGallery::Write(gallery,path);std::exit(ok?0:94);}
@@ -133,6 +144,7 @@ static void *Start(unsigned level,int event,const char *gallery,char *reason,siz
     const char *dir=SDL_GetPrefPath("LionKing","ResourcePreviews");
     if(!dir){Reason(reason,size,"Could not open the preview cache.");return nullptr;}
     Job *job=new Job;std::string root=dir;SDL_free((void*)dir);std::string key=gallery?std::string(gallery)+"-level"+std::to_string(level):"";for(char &c:key)if(!std::isalnum((unsigned char)c))c='-';
+    if(gallery&&(!std::strncmp(gallery,"graphics.scenery.foreground",27)||!std::strncmp(gallery,"graphics.scenery.background",27)))key+="-layer-palette-v3";
     if(gallery&&!std::strcmp(gallery,"graphics.ending_credits"))key+="-readable";
     job->cache=root+(gallery?"gallery-v7-"+key:"snes-457abe63-v4-level"+std::to_string(level)+(event>=0?"-cue"+std::to_string(event):""))+(gallery?".tlkg":".wav");
     SDL_AudioSpec spec;Uint8 *samples=nullptr;Uint32 bytes;
@@ -147,6 +159,11 @@ static void *Start(unsigned level,int event,const char *gallery,char *reason,siz
     const wchar_t *flags[]={L"--rom",L"--md-rom",L"--asset-cache",L"--final-menu-assets",L"--final-native-assets",L"--title-bank-assets",L"--hud-assets",L"--sprite-assets",L"--caption-assets",L"--checkpoint-assets",L"--revival-assets",L"--native-hud-assets"};
     for(int i=1;i+1<argc;i++)for(auto flag:flags)if(!wcscmp(argv[i],flag)){command+=L" "+std::wstring(flag)+L" "+Quote(argv[i+1]);break;}
     LocalFree(argv);command+=L" --config "+Quote(Wide(job->config))+L" --resource-profile "+Quote(Wide(job->profile))+L" --frames 12000 --no-pace --no-record --no-audio";
+    if(event==257){
+        job->targets=job->workspace+"/native-targets.txt";
+        if(!file(job->targets,"C22B36\n")){Reason(reason,size,"Could not prepare the speech-bank preview.");TlkNativeAudioPreviewClose(job);return nullptr;}
+        command+=L" --lle --interp-targets "+Quote(Wide(job->targets));job->timeout=90000;
+    }
     if(level<14)command+=L" --practice-level "+std::to_wstring(level);
     std::vector<std::wstring> env;LPWCH block=GetEnvironmentStringsW();
     for(const wchar_t*p=block;*p;p+=wcslen(p)+1)if(_wcsnicmp(p,L"TLK_",4)&&_wcsnicmp(p,L"SDL_",4)&&_wcsnicmp(p,L"SNESRECOMP_",11))env.emplace_back(p);
@@ -163,6 +180,7 @@ static void *Start(unsigned level,int event,const char *gallery,char *reason,siz
 extern "C" void *TlkNativeAudioPreviewStart(unsigned level,char *reason,size_t size){return Start(level,-1,nullptr,reason,size);}
 extern "C" void *TlkNativeEffectPreviewStart(unsigned level,unsigned event,char *reason,size_t size){
     if(event==256)return Start(14,256,nullptr,reason,size);
+    if(event==257)return Start(6,257,nullptr,reason,size);
     /* The idle Pride opening has not loaded the hyena voices used later in
      * the fight. Graveyard already has the same original30/31/32 cue bank.
      * Only the isolated audition's loading context changes, never its gain. */
@@ -180,7 +198,7 @@ extern "C" void *TlkSubjectPreviewStart(const char *id,unsigned scene,char *reas
 static int Ready(Job *job,char *reason,size_t size) {
     if(!job)return -1;
     if(job->process) {
-        if(WaitForSingleObject(job->process,0)==WAIT_TIMEOUT){if(SDL_GetTicks()-job->began<20000)return 0;Reason(reason,size,"The preview did not finish in time.");return -1;}
+        if(WaitForSingleObject(job->process,0)==WAIT_TIMEOUT){if(SDL_GetTicks()-job->began<job->timeout)return 0;Reason(reason,size,"The preview did not finish in time.");return -1;}
         DWORD code=1;GetExitCodeProcess(job->process,&code);CloseHandle(job->process);job->process=nullptr;
         if(code){Reason(reason,size,"The original resource could not be prepared.");return -1;}
         if(!SDL_RenamePath(job->temp.c_str(),job->cache.c_str())){Reason(reason,size,"Could not save the preview.");return -1;}
@@ -202,7 +220,7 @@ extern "C" int TlkNativeAudioPreviewPoll(void *opaque,SDL_AudioSpec *spec,Uint8 
 extern "C" void TlkNativeAudioPreviewClose(void *opaque) {
     Job *job=(Job*)opaque;if(!job)return;
     if(job->process){if(WaitForSingleObject(job->process,0)==WAIT_TIMEOUT)TerminateProcess(job->process,0);WaitForSingleObject(job->process,2000);CloseHandle(job->process);}
-    Remove(job->temp);Remove(job->profile);Remove(job->config);
+    Remove(job->temp);Remove(job->profile);Remove(job->config);Remove(job->targets);
     if(!job->workspace.empty()){Remove(job->workspace+"/tlk_practice_boot.state");Remove(job->workspace);}
     delete job;
 }

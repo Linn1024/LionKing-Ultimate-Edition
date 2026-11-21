@@ -179,8 +179,8 @@ static const uint8_t *s_rom;
 static size_t s_rom_size;
 /* Original BG2 descriptor+1A maps:45/31 rows, streamed into a32-row VRAM
  * ring. Keep the complete decoded names for tall-window presentation. */
-static uint8_t s_native_panorama[2][5760];
-static unsigned s_native_panorama_height[2];
+static uint8_t s_native_panorama[14][5760];
+static unsigned s_native_panorama_height[14];
 static bool s_enabled;
 static int s_spawn_lead;   /* pixels added to each side of the game's spawn window; 0 = the game's own */
 static unsigned s_ride_cursor;
@@ -260,7 +260,8 @@ static int PrideRockRainPhase(unsigned phase) {
     return (phase&0x100u) && !(phase&~0x137u) && ((phase>>4)&3u)<3;
 }
 static TlkCantWaitView s_cant_wait;
-static uint16_t s_cw_native[128],s_cw_colors[100],s_cw_external[64],s_cw_native_mapped[128];
+static uint16_t s_cw_native[128],s_cw_colors[100],s_cw_external[2][64],s_cw_native_mapped[2][128];
+static int s_scenery_palette[2],s_cw_palette_sources;
 static int s_cw_palette_valid,s_cw_palette_mode,s_cw_scene,s_cw_monkey_palette,s_cw_ostrich_palette,s_cw_tail_palette;
 static unsigned CantWaitColorDistance(unsigned a,unsigned b) {
     int r=(int)(a&31)-(int)(b&31),g=(int)(a>>5&31)-(int)(b>>5&31),bl=(int)(a>>10&31)-(int)(b>>10&31);
@@ -294,15 +295,15 @@ static unsigned CantWaitNativeSunrise(unsigned i,unsigned captured,unsigned phas
     return out;
 }
 static void CantWaitPalette(const uint16_t *native) {
-    int mode=TlkResourcesUseMd("graphics.scenery.palettes");
+    int mode=s_scenery_palette[0]|s_scenery_palette[1]<<1;
     int gradual=TlkResourcesUseMd("gameplay.levels.cant_wait.sunrise_timing");
     unsigned phase=gradual?CantWaitSunrisePhase():100;
     unsigned key=phase|(unsigned)gradual<<8;
-    if(s_cw_palette_valid && mode==s_cw_palette_mode && key==s_cw_palette_phase &&
+    if(s_cw_palette_valid && mode==s_cw_palette_sources && key==s_cw_palette_phase &&
        !memcmp(native,s_cw_native,sizeof s_cw_native) &&
        !memcmp(s_cant_wait.colors,s_cw_colors,sizeof s_cw_colors))return;
     memcpy(s_cw_native,native,sizeof s_cw_native);memcpy(s_cw_colors,s_cant_wait.colors,sizeof s_cw_colors);
-    s_cw_palette_valid=1;s_cw_palette_mode=mode;s_cw_palette_phase=key;
+    s_cw_palette_valid=1;s_cw_palette_sources=mode;s_cw_palette_mode=s_scenery_palette[1];s_cw_palette_phase=key;
     uint16_t colors[64],settled[64];
     const uint16_t *md=s_cw_colors;
     if(!gradual && s_cant_wait.triggered && TlkMdCantWaitInitialPalette(1,settled))md=settled;
@@ -310,12 +311,12 @@ static void CantWaitPalette(const uint16_t *native) {
     for(unsigned i=0;i<128;i++) {
         unsigned best=~0u,index=16;
         for(unsigned n=16;n<64;n++){unsigned d=CantWaitColorDistance(native[i],colors[n]);if(d<best){best=d;index=n;}}
-        s_cw_native_mapped[i]=mode?colors[index]:CantWaitNativeSunrise(i,native[i],phase);
+        for(unsigned layer=0;layer<2;layer++)s_cw_native_mapped[layer][i]=s_scenery_palette[layer]?colors[index]:CantWaitNativeSunrise(i,native[i],phase);
     }
     for(unsigned i=0;i<64;i++) {
         unsigned best=~0u,index=0;
         for(unsigned n=0;n<128;n++){unsigned d=CantWaitColorDistance(colors[i],native[n]);if(d<best){best=d;index=n;}}
-        s_cw_external[i]=mode?colors[i]:s_cw_native_mapped[index];
+        for(unsigned layer=0;layer<2;layer++)s_cw_external[layer][i]=s_scenery_palette[layer]?colors[i]:s_cw_native_mapped[layer][index];
     }
 }
 
@@ -354,6 +355,12 @@ static void PrepareDestinySkyFace(void) {
 static int BonusScene(void) {
     unsigned level=rd16(s_frame.ram+0x1ff9e);
     return level>=10 && level<=13 && rd24(s_frame.ram+0xdf)==0xc005dd+(level-10)*0x32;
+}
+/* Hunt worlds scroll and have complete finite terrain. Their bonus status
+ * does not make them a fixed224-line picture like the Pumbaa arena. */
+static bool HuntScene(void) {
+    unsigned level=rd16(s_frame.ram+0x1ff9e);
+    return level>=11 && level<=13 && BonusScene();
 }
 static bool CubPiece(const Piece *p) {
     if(BonusScene())return false;
@@ -1155,14 +1162,21 @@ static int s_spawn_height=224;
  * Pride's selected settled-camera scan before the player controller starts. */
 static bool LiveSpawnViewport(void) {
     unsigned level=rd16(g_ram+0x1ff9e);
-    if(level<6 || level>=10)return true;
+    if(level>=10)return true;
     if(s_spawn_height<=224 && 256+2*s_spawn_lead<=TlkResourcesViewportForScene(level))return true;
     unsigned action=rd24(g_ram+0xb243);
+    /* Cub checkpoint reloads also fly the camera before the hero controller
+     * is initialized. Extra activation along that flight can exhaust the
+     * native actor pool. Keep the console scan until the retry initializer
+     * hands back a live controller; ordinary cub cold starts stay unchanged. */
+    if(level<6 && !(rd16(g_ram+0x1ffa2) && rd16(g_ram+0x2004) && !action))return true;
     return rd24(g_ram+0xb217)==0xc5858a && action>=0xc30000 && action<0xc40000;
 }
 static void VerticalMargins(int *top,int *bottom) {
     *top=*bottom=0;
-    if(s_spawn_height<=224 || rd16(g_ram+0x1ff9e)>9 || rd16(g_ram+0x1ff9e)==3 ||
+    unsigned level=rd16(g_ram+0x1ff9e);
+    bool hunt=level>=11 && level<=13 && rd24(g_ram+0xdf)==0xc0060f+(level-11)*0x32;
+    if(s_spawn_height<=224 || (level>9 && !hunt) || level==3 ||
        (rd16(g_ram+0x1ff9e)==1 && rd16(g_ram+0xa56)))return;
     int camera=(int)rd16(g_ram+0xb29d)+1,map_height=(int)rd16(g_ram+0xd4)*16;
     if(map_height<224)return;
@@ -2062,7 +2076,7 @@ static unsigned TilePixel(const uint16_t *vram, unsigned address, unsigned x, un
 }
 
 static void PreparePanorama(const Line *l,unsigned level) {
-    if(level>1 || !s_native_panorama_height[level])return;
+    if(level>=14 || !s_native_panorama_height[level])return;
     unsigned v=l->vram,base=((l->bgchr>>4)&15)<<12,key=level+1;
     if(s_panorama_checked[v]==s_panorama_epoch)return;
     s_panorama_checked[v]=s_panorama_epoch;
@@ -2089,7 +2103,7 @@ static const uint32_t *NativeBackgroundRgb(unsigned slot,const uint16_t *colors,
         s_bg_rgb[slot].epoch=s_draw_choice_epoch;s_bg_rgb[slot].bright=bright;
         memcpy(s_bg_rgb[slot].colors,colors,128*sizeof *colors);
         for(unsigned i=0;i<128;i++){
-            unsigned c=king?s_cw_native_mapped[i]:md_scene?TlkMdSceneColor(i,0,colors[i]):colors[i];
+            unsigned c=king?s_cw_native_mapped[slot][i]:md_scene?TlkMdSceneModeColor(i,0,colors[i],s_scenery_palette[slot]):colors[i];
             s_bg_rgb[slot].rgb[i]=(uint32_t)mult[c&31]<<16|(uint32_t)mult[c>>5&31]<<8|mult[c>>10&31];
         }
     }
@@ -2109,7 +2123,7 @@ static const uint32_t *NativeFixedBackgroundRgb(unsigned layer,const Line *l,uns
         cache[layer].epoch=s_draw_choice_epoch;cache[layer].key=key;
         memcpy(cache[layer].colors,l->cgram,sizeof cache[layer].colors);
         for(unsigned i=0;i<128;i++){
-            unsigned c=king?s_cw_native_mapped[i]:md_scene?TlkMdSceneColor(i,0,l->cgram[i]):l->cgram[i];
+            unsigned c=king?s_cw_native_mapped[layer][i]:md_scene?TlkMdSceneModeColor(i,0,l->cgram[i],s_scenery_palette[layer]):l->cgram[i];
             unsigned r=c&31,g=c>>5&31,b=c>>10&31;const uint8_t *map=mult;
             if(l->cgadsub&(1u<<layer)){
                 unsigned r2=l->fixed&31,g2=l->fixed>>5&31,b2=l->fixed>>10&31;
@@ -2123,7 +2137,7 @@ static const uint32_t *NativeFixedBackgroundRgb(unsigned layer,const Line *l,uns
     return cache[layer].rgb;
 }
 static uint32_t NativeFixedBackdropRgb(const Line *l,const uint8_t *mult,const uint8_t *half) {
-    unsigned c=s_cw_scene && !s_cw_palette_mode?s_cw_native_mapped[0]:l->cgram[0];
+    unsigned c=s_cw_scene && !s_cw_palette_mode?s_cw_native_mapped[1][0]:l->cgram[0];
     unsigned r=c&31,g=c>>5&31,b=c>>10&31;const uint8_t *map=mult;
     if(l->cgadsub&0x20){
         unsigned r2=l->fixed&31,g2=l->fixed>>5&31,b2=l->fixed>>10&31;
@@ -2229,9 +2243,10 @@ static uint16_t BgPixel(const Line *l, const uint16_t *vram, unsigned layer, int
      * addressing used to recognize the submitted map, across the full view.
      * Keep SNES-camera playback and decoded MD scenery on their own paths. */
     bool native_ride=layer==0 && s_ride_scene;
+    bool native_hunt=layer==0 && s_area_active && HuntScene();
     if(layer==0 && s_native_md_layout && NativeLayoutTile(ox+x,oy,&tile)) {
         px=ox+x;py=oy;
-    } else if (layer == 0 && (map || native_ride)) {
+    } else if (layer == 0 && (map || native_ride || native_hunt)) {
         px = native_ride?RideMapSourceX(ox+x,oy):ox+x;
         py = oy;
         if (!MapTile(&s_frame.level, &px, &py, &tile)) return 0;
@@ -2256,7 +2271,7 @@ static uint16_t BgPixel(const Line *l, const uint16_t *vram, unsigned layer, int
         }
         px = source_x & 1023;
         py = (int)(((unsigned)y0 + 1 + l->vofs[layer]) & 1023);
-        if(layer==1 && s_area_active && s_area_height>224 && s_md_level<2 &&
+        if(layer==1 && s_area_active && s_area_height>224 && (s_md_level<2 || HuntScene()) &&
            !s_md_background && s_native_panorama_height[s_md_level] && size==8){
             py=y0;if(py<0)py=0;if(py>=(int)s_native_panorama_height[s_md_level])py=s_native_panorama_height[s_md_level]-1;
             /* A mirrored copy meets the same edge at each join. This is a
@@ -2291,7 +2306,7 @@ static void NativeAreaForegroundRow(uint16_t *out,int width,int column,const Lin
     const uint16_t *vram=s_vram[l->vram];unsigned base=(l->bgchr&15)<<12;
     for(int i=0;i<width;){
         int x=i-column,px,py,step=1;uint16_t tile=0;
-        bool map=s_ride_scene || y0<0 || y0>=224 || (x<0?left_map:x>=256&&right_map);
+        bool map=s_ride_scene || (s_area_active && HuntScene()) || y0<0 || y0>=224 || (x<0?left_map:x>=256&&right_map);
         if(s_native_md_layout && NativeLayoutTile(ox+x,oy,&tile)) {
             px=ox+x;py=oy;
         }else if(map){
@@ -3446,8 +3461,8 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     /* These scenes' complete native BG2 composition is a finite 224-row
      * band schedule. Fit that picture to a tall view; choose each source
      * row's own scroll/palette rather than extending its last band below it. */
-    int native_panorama=(pride || s_cw_scene) && !s_md_background &&
-        s_md_level<2 && s_native_panorama_height[s_md_level];
+    int native_panorama=(pride || s_cw_scene || (bonus && HuntScene())) && !s_md_background &&
+        s_md_level<14 && s_native_panorama_height[s_md_level];
     int fitted_bands=s_area_active && s_area_height>224 && !native_panorama;
     if(fitted_bands){
         background_y=(y0+s_area_top)*224/s_area_height;
@@ -3455,7 +3470,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         background_line=WorldPresentationLine(background_y);
     }
     int anchor_pride=s_area_active && s_area_height>224 &&
-        (pride || (s_md_level==1 && s_frame.stage && rd24(s_frame.ram+0xdf)==0xc003b9)) && !s_md_background && s_native_panorama_height[s_md_level];
+        (pride || (s_md_level==1 && s_frame.stage && rd24(s_frame.ram+0xdf)==0xc003b9) || (bonus && HuntScene())) && !s_md_background && s_native_panorama_height[s_md_level];
     if(anchor_pride){
         int view_y=y0+s_area_top;
         int panorama_height=(int)s_native_panorama_height[s_md_level];
@@ -3475,7 +3490,9 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
             s_area_sky_color=StableEdge(0,s_area_sky_color);s_area_sky_edge_valid=1;
         }
     }
-    int md_palette=md_scene && TlkResourcesUseMd("graphics.scenery.palettes");
+    s_scenery_palette[0]=TlkResourcesUseMd("graphics.scenery.foreground.palette");
+    s_scenery_palette[1]=TlkResourcesUseMd("graphics.scenery.background.palette");
+    int md_palette=md_scene && s_scenery_palette[0];
     if (md_scene) TlkMdScenePalette(s_md_level,l->cgram,md_palette);
     if(s_cw_scene)CantWaitPalette(l->cgram);
 
@@ -3822,6 +3839,9 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     int ring_camera=(int)rd16(s_frame.ram+0xb29b)-(int)rd16(s_frame.ram+0xa56);
     int ring_row=ride_view && ring_camera>=0 && rd16(s_frame.ram+0xa40)>(unsigned)ring_camera;
     uint16_t ride_tokens[2][512];
+    /* Background-only fast paths can skip the first copy of a column.
+     * Reuse a repeated token only if that column was actually sampled. */
+    bool ride_token_valid[2][512]={{false}};
     int flat_ride_sky=!anchor_pride && !fitted_bands && s_area_active && ride_view && y0<s_area_min_y && !l->tmw && !l->tsw;
     const uint32_t *native_rgb[2]={NULL,NULL};
     int fast_native=s_area_active && s_frame.stage && !stampede && !(l->cgadsub&3) && !clip_mode &&
@@ -3831,8 +3851,9 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         !TlkResourcesUseMd("graphics.scenery.foreground") && !TlkResourcesUseMd("graphics.scenery.background");
     if(fast_native){
         native_rgb[0]=NativeBackgroundRgb(0,l->cgram,bright,mult,md_scene,s_cw_scene);
-        native_rgb[1]=(anchor_pride || fitted_bands) && memcmp(l->cgram,background_line->cgram,128*sizeof(uint16_t))?
-            NativeBackgroundRgb(1,background_line->cgram,bright,mult,md_scene,s_cw_scene):native_rgb[0];
+        const uint16_t *bg_colors=(anchor_pride || fitted_bands)?background_line->cgram:l->cgram;
+        native_rgb[1]=s_scenery_palette[0]!=s_scenery_palette[1] || memcmp(l->cgram,bg_colors,128*sizeof(uint16_t))?
+            NativeBackgroundRgb(1,bg_colors,bright,mult,md_scene,s_cw_scene):native_rgb[0];
     }
     if(fast_fixed)for(unsigned layer=0;layer<2;layer++)
         native_rgb[layer]=NativeFixedBackgroundRgb(layer,l,bright,mult,half,md_scene,s_cw_scene);
@@ -3891,7 +3912,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
             int repeat=ride_view && !flat_ride_sky && s_vis_lo==0 && s_vis_hi==width && layer<2 &&
                 ((layer==1 && !anchor_pride) || (layer==0 && ring_row &&
                  !(s_ride_exit_shift>=0 && ox+x>=s_ride_exit_shift+(int)rd16(s_frame.ram+0xa56)+512)));
-            if(repeat && i>=512)px=ride_tokens[layer][i&511];
+            if(repeat && i>=512 && ride_token_valid[layer][i&511])px=ride_tokens[layer][i&511];
             else if(layer==1 && anchor_pride)
                 px=s_panorama_pixels[background_line->vram][(unsigned)background_y*512+
                     PanoramaX(x+panorama_scroll)];
@@ -3902,7 +3923,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 px=BgPixel(l,vram,1,x,by,false,ox,oy,column,width);
             else px = layer < 2 && mirror[layer] && in_margin ? BgPixel(l,vram,layer,Reflect(x,256),by,false,ox,oy,column,width)
                 : BgPixel(l,vram,layer,x,by,(s_area_active&&(y0<0||y0>=224))||(x<0?map_left:x>=256&&map_right),ox,oy,column,width);
-            if(repeat && i<512)ride_tokens[layer][i]=px;
+            if(repeat && i<512){ride_tokens[layer][i]=px;ride_token_valid[layer][i]=true;}
             if (!px) continue;
             if ((l->tm & bit) && (px >> 12) > (main >> 12) && !((l->tmw & bit) && Window(l, layer, x, column, width)))
                 main = px;
@@ -3936,9 +3957,9 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         int stampede_pixel=stampede_token>=0 && layer<=1;
         if(stampede_pixel)c=TlkNextSceneStampedeColor(stampede_token&63,stampede_palette);
         else if((layer<=1 || layer==5) && stampede_palette)c=StampedeColor(main&255,(uint16_t)c);
-        else if(layer==5 && s_cw_scene && !s_cw_palette_mode)c=s_cw_native_mapped[0];
-        else if(layer<=1 && s_cw_scene)c=(main&0x800)?s_cw_external[main&63]:s_cw_native_mapped[main&127];
-        else if (layer<=1 && md_scene) c=TlkMdSceneColor(main&255,(main&0x800)!=0,(uint16_t)c);
+        else if(layer==5 && s_cw_scene && !s_cw_palette_mode)c=s_cw_native_mapped[1][0];
+        else if(layer<=1 && s_cw_scene)c=(main&0x800)?s_cw_external[layer][main&63]:s_cw_native_mapped[layer][main&127];
+        else if (layer<=1 && md_scene) c=TlkMdSceneModeColor(main&255,(main&0x800)!=0,(uint16_t)c,s_scenery_palette[layer]);
         else if (main & 0x800) c = TlkResourcesCubColor(s_md_level, main & 255, l->cgram, (uint16_t)c);
         if (layer>=4 && main==o && s_npc_color[i]!=0xffff) c=s_npc_color[i];
         if(s_fallback_enabled && keep && bright && !(l->inidisp&128)) {
@@ -3964,8 +3985,8 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 unsigned sub_layer=(sub>>8)&7;
                 if((anchor_pride || fitted_bands) && sub_layer==1)c2=background_line->cgram[sub&255];
                 if(sub_layer<=1 && stampede_palette)c2=StampedeColor(sub&255,(uint16_t)c2);
-                else if(sub_layer<=1 && s_cw_scene)c2=(sub&0x800)?s_cw_external[sub&63]:s_cw_native_mapped[sub&127];
-                else if (sub_layer<=1 && md_scene) c2=TlkMdSceneColor(sub&255,(sub&0x800)!=0,(uint16_t)c2);
+                else if(sub_layer<=1 && s_cw_scene)c2=(sub&0x800)?s_cw_external[sub_layer][sub&63]:s_cw_native_mapped[sub_layer][sub&127];
+                else if (sub_layer<=1 && md_scene) c2=TlkMdSceneModeColor(sub&255,(sub&0x800)!=0,(uint16_t)c2,s_scenery_palette[sub_layer]);
                 else if (sub & 0x800) c2 = TlkResourcesCubColor(s_md_level, sub & 255, l->cgram, (uint16_t)c2);
                 if (sub_layer>=4 && sub==o && s_npc_color[i]!=0xffff) c2=s_npc_color[i];
                 if (halve) map = half;
@@ -3989,11 +4010,12 @@ void TlkWideSetRom(const uint8_t *rom,size_t size) {
     s_rom=rom;s_rom_size=size;memset(s_native_panorama_height,0,sizeof s_native_panorama_height);
     memset(s_panorama_owner,0,sizeof s_panorama_owner);
     if(!rom || size<0x400)return;
-    for(unsigned level=0;level<2;level++){
+    for(unsigned level=0;level<14;level++){
+        if(level>1 && level<11)continue;
         unsigned rec=rd24(rom+0x357+level*3)&0x3fffff;size_t written=0;
         if(rec+29>size)continue;
         if(TlkMdDecompress(rom,size,rd24(rom+rec+26)&0x3fffff,s_native_panorama[level],sizeof s_native_panorama[level],&written) &&
-           written && !(written%128) && written==(level?3968u:5760u))
+           written && !(written%128) && written==(level>=11?3584u:level?3968u:5760u))
             s_native_panorama_height[level]=(unsigned)written/128*8;
     }
 }
@@ -4113,8 +4135,9 @@ bool TlkWideValidateHistory(const uint8_t *p,size_t n) {
        (int32_t)ViewGet(p+400)<-16777216 || (int32_t)ViewGet(p+400)>16777216))return false;
     if(version>=11){
         unsigned key=ViewGet(p+376),height=key&1023,level=(key>>10)&15;
-        if(key && (!(key&0x80000000u) || (key&0x7fffc000u) || height<=224 || height>TLK_WIDE_MAX_VIEW_HEIGHT || level>9 ||
+        if(key && (!(key&0x80000000u) || (key&0x7fffc000u) || height<=224 || height>TLK_WIDE_MAX_VIEW_HEIGHT || (level>9 && (level<11 || level>13)) ||
            (int32_t)ViewGet(p+76)<-65536 || (int32_t)ViewGet(p+76)>65535))return false;
+        if(key && level>=11 && (ViewGet(p+380)&65535)!=0x60f+(level-11)*0x32)return false;
         if(!key && (ViewGet(p+76)||ViewGet(p+380)))return false;
     }
     if(version>=2 && ViewGet(p+48)>65535u && ViewGet(p+48)!=0xffffffffu)return false;
@@ -4431,8 +4454,11 @@ bool TlkWideEndFrame(const uint8_t *stock) {
                 s_gy_death.y=screen_y*224/s_area_view_height;
             }
             memcpy(s_gy_death.colors,s_frame.lines[112].cgram+128,sizeof s_gy_death.colors);
+        /* Spare lives govern the guest's retry/Continue decision. The selected
+         * death drawing also applies when the life counter is zero. Retain
+         * scene/player/skip guards and leave the guest lifecycle untouched. */
         } else if(s_gy_death.live && !s_gy_death.active && !rd16(s_frame.ram+0xa6ba) &&
-                  !rd16(s_frame.ram+0x1ff90) && rd16(s_frame.ram+0x1ffaa) &&
+                  !rd16(s_frame.ram+0x1ff90) &&
                   (rd24(s_frame.ram+0xb243)==0xc35a82 ||
                    (death_level>=6 && !s_frame.stage && rd24(s_frame.ram+0xb243)==0xc37e76) ||
                    TlkHealthDeathAudioNested(s_frame.ram,death_level>=6))) {
@@ -4462,7 +4488,7 @@ bool TlkWideEndFrame(const uint8_t *stock) {
         } else if(s_gy_death.live && !s_gy_death.active && hero &&
                   (action==0xc45e93 || action==0xc45a5b) &&
                   TlkMdSpritesCubDeathReady(hero->pose,s_frame.ram,sizeof s_frame.ram) &&
-                  !rd16(s_frame.ram+0xa6ba) && rd16(s_frame.ram+0x1ffaa)) {
+                  !rd16(s_frame.ram+0xa6ba)) {
             s_gy_death.active=1;s_gy_death.age=0;s_gy_death.latch=s_frame.latch_serial;
         } else if(s_gy_death.active && s_gy_death.latch!=s_frame.latch_serial) {
             s_gy_death.latch=s_frame.latch_serial;
@@ -4727,13 +4753,13 @@ bool TlkWideDraw(uint32_t *out, int width, bool hud_edges) {
 
 bool TlkWideAreaSupported(void) {
     if(s_area_scene_allowed&&!s_area_scene_allowed())return false;
-    if(!s_frame.valid||!s_frame.stage||rd16(s_frame.ram+0x1ff9e)>9||
+    if(!s_frame.valid||!s_frame.stage||(rd16(s_frame.ram+0x1ff9e)>9 && !HuntScene())||
        (int16_t)rd16(s_frame.ram+0x2004)<=0||CubDeathFrame()||GraveyardDeathSelected())return false;
     unsigned level=rd16(s_frame.ram+0x1ff9e),scene=rd24(s_frame.ram+0xdf);
     if(level==3)return false;
     if(level==6)for(unsigned i=0;i<s_frame.piece_count;i++)if(DestinySkyFacePiece(&s_frame.pieces[i]))return false;
     if(scene!=0xc00387+level*50&&!(level==0&&scene==0xc0080d)&&
-       !(level==9&&scene==0xc007db))return false;
+       !(level==9&&scene==0xc007db)&&!HuntScene())return false;
     return LineHasStage(&s_frame.lines[112]);
 }
 bool TlkWideDrawArea(uint32_t *out,int width,int height,bool hud_edges,int *native_row) {
@@ -4829,7 +4855,7 @@ bool TlkWideDumpScene(const char *path) {
         rd16(s_frame.ram+0xa40),(rd16(s_frame.ram+0xa40)/5)%3);
     fprintf(f,"\"view_area\":{\"width\":%d,\"height\":%d,\"native_row\":%d,\"height_supported\":%s,\"background_extension\":\"%s\"},\n",s_area_view_width,s_area_view_height,s_area_view_top,TlkWideAreaSupported()?"true":"false",
         s_area_view_height<=224?"source_canvas":
-        !TlkResourcesUseMd("graphics.scenery.background") && rd16(s_frame.ram+0x1ff9e)<=1?
+        !TlkResourcesUseMd("graphics.scenery.background") && (rd16(s_frame.ram+0x1ff9e)<=1 || HuntScene())?
             "native_full_panorama_fit":TlkResourcesUseMd("graphics.scenery.background")?
             "genesis_captured_background_fit":"native_banded_panorama_fit");
     fprintf(f,"\"ride_handoff\":{\"column\":%d,\"shift\":%d,\"background_shift\":%d,\"travel\":%u,\"raster_x\":%d},\n",RideHandoffColumn(s_area_view_width),s_ride_handoff.shift,s_ride_handoff.background_shift,rd16(s_frame.ram+0xa40),s_frame.raster_camera[0]);
