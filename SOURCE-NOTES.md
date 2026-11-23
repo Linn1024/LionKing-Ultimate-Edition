@@ -23,4 +23,4 @@ fan project. The combined runtime is noncommercial; see the packaged licenses.
 
 Optional external screen effects include a GLSL adaptation of the installed BizHawk 3xBRZ Linear recipe, HQ2x, scanlines and bicubic. Original shader source and notices are under engine/runner/shaders. GPL text accompanies 3xBRZ; shader resources retain their original licenses.
 
-The current source adds optional Genesis-style scenery motion on SNES artwork, Pride Rock firelight and editable layer colours. Custom sprite colours persist through death rendering; summit scenery effects continue until the existing rain phase takes ownership. This source commit does not replace the previously published Windows shader ZIP.
+The current source includes optional scenery effects, independent custom sprite colours and a stable palette editor with separate SNES/Genesis edits, pose previews, resets and preset saving. The Best enables the optional scenery effects. This source update does not replace the previously published Windows shader ZIP.

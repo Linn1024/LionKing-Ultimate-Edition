@@ -22,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include "tlk_browser_presets.h"
+#include "tlk_browser_sprite_colours.h"
 #include "tlk_browser_palette_editor.h"
 #include "tlk_browser_preset_manager.h"
 #include "tlk_browser_placement_diagram.h"

@@ -31,11 +31,11 @@ static bool Read(const std::string &path,std::vector<int> &values,std::string &m
         char id[160],value[32],extra;
         if(std::sscanf(line.c_str(),"%159s = %31s %c",id,value,&extra)!=2){valid=false;break;}
         if(!std::strcmp(id,"schema")){if(schema||std::strcmp(value,"1"))valid=false;schema=true;continue;}
-        if(!std::strncmp(id,"colour.",7)){
-            unsigned l,t,c,to;char tail;
-            if(std::sscanf(id,"colour.%u.%u.%x%c",&l,&t,&c,&tail)!=3||std::sscanf(value,"%x%c",&to,&tail)!=1||l>=14||t>=3||c>32767||to>32767||values.size()>=(size_t)TlkResourcesCount()+4096){valid=false;break;}
-            for(size_t i=TlkResourcesCount();i+3<values.size();i+=4)if(values[i]==(int)l&&values[i+1]==(int)t&&values[i+2]==(int)c)valid=false;
-            values.insert(values.end(),{(int)l,(int)t,(int)c,(int)to});continue;
+        int entry[4],colour=TlkResourcesPaletteDecode(id,value,entry);
+        if(colour>=0){
+            if(!colour||values.size()>=(size_t)TlkResourcesCount()+16384){valid=false;break;}
+            for(size_t i=TlkResourcesCount();i+3<values.size();i+=4)if(values[i]==entry[0]&&values[i+1]==entry[1]&&values[i+2]==entry[2])valid=false;
+            values.insert(values.end(),entry,entry+4);continue;
         }
         int index=TlkResourcesFind(id),source=!std::strcmp(value,"inherit")?0:!std::strcmp(value,"snes")?1:!std::strcmp(value,"md")?2:-1;
         if(index<0||source<0||values[index]>=0||(!index&&!source)){valid=false;break;}values[index]=source;
@@ -47,7 +47,7 @@ static bool Read(const std::string &path,std::vector<int> &values,std::string &m
 static std::string Text(const std::vector<int> &values) {
     std::string text="; Lion King custom resource preset\nschema = 1\n";const char *sources[]={"inherit","snes","md"};
     for(int i=0;i<TlkResourcesCount();i++)text+=std::string(TlkResourcesNode(i)->id)+" = "+sources[values[i]]+"\n";
-    for(size_t i=TlkResourcesCount();i+3<values.size();i+=4){char line[100];std::snprintf(line,sizeof line,"colour.%d.%d.%04x = %04x\n",values[i],values[i+1],values[i+2],values[i+3]);text+=line;}return text;
+    for(size_t i=TlkResourcesCount();i+3<values.size();i+=4){char line[256];if(TlkResourcesPaletteEncode(values.data()+i,line,sizeof line))text+=line;}return text;
 }
 static bool Write(const std::string &path,const std::vector<int> &values,std::string &message) {
     std::string text=Text(values),temp=path+".tmp-"+std::to_string(SDL_GetTicksNS());

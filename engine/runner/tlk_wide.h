@@ -98,4 +98,6 @@ bool TlkWideRetreatMargins(int *left,int *right,int *bottom);
 /* Current temporary distance lead used only while the ride parser runs. */
 int TlkWideRideScriptLead(void);
 
+
+int TlkWideSpritePaletteColors(int node,int md,uint16_t *out,int capacity);
 #endif

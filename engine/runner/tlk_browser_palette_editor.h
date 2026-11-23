@@ -2,14 +2,18 @@
 extern "C" {
 #include "tlk_wide.h"
 }
+#include "tlk_browser_sprite_colours.h"
 struct BrowserPaletteEditor {
+ BrowserSpriteColours sprites;
  SDL_Texture *image[2]={};int owner=-1,target=1,selected=0;bool refresh=true;uint64_t palette_stamp=~uint64_t(0);
- void Clear(){for(auto &t:image){SDL_DestroyTexture(t);t=nullptr;}}
+ void Clear(){sprites.Clear();for(auto &t:image){SDL_DestroyTexture(t);t=nullptr;}}
  ~BrowserPaletteEditor(){Clear();}
  static ImVec4 RGB(unsigned c){return ImVec4((c&31)/31.f,(c>>5&31)/31.f,(c>>10&31)/31.f,1);}
  void Draw(SDL_Renderer *renderer,int node){
   const auto *n=TlkResourcesNode(node);
   if(!n||!strstr(n->id,"palette")||strncmp(n->id,"graphics.",9))return;
+  if(TlkResourcesSpritePaletteNode(node)){sprites.Draw(renderer,node);return;}
+  if(sprites.owner>=0)sprites.Clear();
   if(!ImGui::CollapsingHeader("Edit this level's colours"))return;
   uint64_t stamp=1469598103934665603ull;
   for(int i=0;i<TlkResourcesPaletteCount(1);i++){int e[4];TlkResourcesPaletteEntry(i,1,e);for(int v:e){stamp^=(unsigned)v;stamp*=1099511628211ull;}}

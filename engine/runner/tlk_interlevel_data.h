@@ -24,6 +24,7 @@ int TlkInterlevelDataCliffReady(void);
 int TlkInterlevelDataTimonReady(void);
 int TlkInterlevelDataTimonBankMatches(const uint8_t *,size_t);
 int TlkInterlevelDataRenderTimon(unsigned,unsigned,int,int,int,int,int,unsigned,const uint16_t *,const uint8_t *,uint32_t *);
+int TlkInterlevelDataRenderTimonCustom(unsigned,unsigned,int,int,int,int,int,unsigned,const uint16_t *,const uint8_t *,uint32_t *);
 unsigned TlkInterlevelDataCliffEvents(unsigned tick);
 unsigned TlkInterlevelDataCliffPose(unsigned program,unsigned tick);
 int TlkInterlevelDataRenderCliff(unsigned tick,unsigned cap,unsigned loss,unsigned width,uint32_t *pixels);

@@ -23,6 +23,11 @@ int TlkResourcesPaletteSet(int level,int layer,int from,int to);
 void TlkResourcesPaletteReset(int level,int layer);
 void TlkResourcesPalettePreview(int on);
 uint16_t TlkResourcesPaletteMap(unsigned level,unsigned layer,uint16_t color);
+/* Independent sprite colours, across levels and separated by palette source. */
+int TlkResourcesSpritePaletteNode(int node);
+uint16_t TlkResourcesSpritePaletteMap(int node,int md,uint16_t color);
+int TlkResourcesPaletteDecode(const char *id,const char *value,int out[4]);
+int TlkResourcesPaletteEncode(const int entry[4],char *out,size_t size);
 void TlkResourcesInit(const uint8_t *snes, size_t size, const char *md_path, const char *profile);
 void TlkResourcesSetCachePath(const char *path,int prepare);
 void TlkResourcesSetTitleAssetsPath(const char *path);

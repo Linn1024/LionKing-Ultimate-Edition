@@ -8,7 +8,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT/'build/github-share6996'
 EXTENSIONS = {'.c', '.cpp', '.h', '.hpp', '.py', '.ps1', '.sh', '.cmake', '.cfg',
-              '.toml', '.rs', '.lock', '.hunks', '.patch', '.rc'}
+              '.toml', '.rs', '.lock', '.hunks', '.patch', '.rc', '.inc'}
 DIRS = {'runner', 'recomp', 'cmake', 'patches', 'scripts', 'tools', 'player', 'player-final'}
 
 

@@ -79,8 +79,10 @@ static unsigned s_draw_choice_epoch;
 static uint32_t s_sprite_colour_seen[1024];
 static int s_custom_palette_colours;
 static int s_draw_choices_active;
+static void SpritePaletteBegin(void);
 static void DrawChoicesBegin(void) {
     memset(s_sprite_colour_seen,0,sizeof s_sprite_colour_seen);
+    SpritePaletteBegin();
     s_custom_palette_colours=TlkResourcesPaletteCount(0)||TlkResourcesPaletteCount(1);
     if(!++s_draw_choice_epoch){memset(s_draw_choices,0,sizeof s_draw_choices);s_draw_choice_epoch=1;}
     s_draw_choices_active=1;
@@ -241,6 +243,8 @@ static int s_native_pride_bg_edges;
 enum { kAdultCheckpointRole=TLK_MD_SPRITE_ROLE_COUNT, kPorcupineArtRole, kSceneRoleCount };
 static int s_md_npc_frames[kSceneRoleCount],s_md_npc_palette[kSceneRoleCount];
 static uint16_t s_npc_color[TLK_WIDE_MAX_WIDTH];
+static uint16_t s_obj_palette[TLK_WIDE_MAX_WIDTH];
+static uint16_t PaletteToken(const char *id);
 static const Piece *s_fallback_piece[TLK_WIDE_MAX_WIDTH];
 static const char *s_fallback_reason[TLK_WIDE_MAX_WIDTH];
 static int s_fallback_enabled,s_fallback_all_sprites,s_fallback_all_graphics;
@@ -409,9 +413,10 @@ static int DeathApproach(int distance,unsigned steps) {
     if((unsigned)amount>steps)amount=(int)steps;
     return distance<0?distance+amount:distance-amount;
 }
+static unsigned SpriteDeathColor(unsigned level,uint16_t color);
 static int CustomObjectColours(unsigned level) {
     int count=TlkResourcesPaletteCount(0);
-    for(int i=0;i<count;i++){int e[4];if(TlkResourcesPaletteEntry(i,0,e)&&e[0]==(int)level&&e[1]==2)return 1;}
+    for(int i=0;i<count;i++){int e[4];if(TlkResourcesPaletteEntry(i,0,e)&&((e[0]==(int)level&&e[1]==2)||e[0]==14))return 1;}
     return 0;
 }
 static void GraveyardDeathActor(uint32_t *out,int width) {
@@ -440,7 +445,7 @@ static void GraveyardDeathActor(uint32_t *out,int width) {
     for(int y=by;y<by+bh;y++)for(int x=bx;x<bx+bw;x++){
         int dx=px+x,dy=py+y;if(dx<0 || dx>=width || dy<0 || dy>=TLK_WIDE_HEIGHT)continue;
         int pixel=adult?TlkMdSpritesPixel(pose,x,y):TlkMdSpritesCubDeathPixel(pose,x,y,frames);if(pixel<=0)continue;
-        unsigned color=scene_colors?scene_colors[pixel]:TlkResourcesCubColor(level,128+(unsigned)pixel,colors,colors[128+pixel]);color=TlkResourcesPaletteMap(level,2,(uint16_t)color);uint32_t rgb=0;
+        unsigned color=scene_colors?scene_colors[pixel]:TlkResourcesCubColor(level,128+(unsigned)pixel,colors,colors[128+pixel]);color=SpriteDeathColor(level,(uint16_t)color);uint32_t rgb=0;
         for(unsigned c=0;c<3;c++){
             unsigned v=(color>>(c*5))&31,sub=fade*4;v=v>sub?v-sub:0;
             rgb|=(v*8+(v>>2))<<(c==0?16:c==1?8:0);
@@ -2996,6 +3001,8 @@ static int UnavailableWorldLifePiece(const Piece *p) {
     unsigned lives=rd16(s_frame.ram+0x1ffaa);
     return TlkResourcesUseMd("gameplay.life_pickup_limit")?lives==9:(int16_t)lives>=8;
 }
+#include "tlk_sprite_palette.inc"
+
 static unsigned SpriteRow(uint16_t *obj, int width, int column, const Line *l, const uint16_t *vram, int x,
                           int row, int size, uint16_t attr, int lo, int hi, bool cub,const Piece *owner) {
     if(UnavailableWorldLifePiece(owner))return 0;
@@ -3192,7 +3199,7 @@ static unsigned SpriteRow(uint16_t *obj, int width, int column, const Line *l, c
          * The HUD pass runs after world sprites, so unconditional writes here
          * would incorrectly cover earlier caption/world objects. */
         if (pixel && (!s_hud_pass || s_current_obj_slot<=s_obj_slot[dest])) {
-            obj[dest] = (uint16_t)(z | pixel);s_obj_slot[dest]=(uint8_t)s_current_obj_slot;s_npc_color[dest]=npc_color;drawn++;
+            obj[dest] = (uint16_t)(z | pixel);s_obj_slot[dest]=(uint8_t)s_current_obj_slot;s_obj_palette[dest]=SpritePaletteToken(owner);s_npc_color[dest]=npc_color;drawn++;
             if(s_fallback_enabled) {
                 int expected=cub?s_md_cub_frames:
                     role?s_md_npc_frames[role]:s_fallback_all_sprites && !hud;
@@ -3550,6 +3557,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     uint16_t obj[TLK_WIDE_MAX_WIDTH];
     memset(obj, 0, (size_t)width * sizeof obj[0]);
     memset(s_obj_slot,255,(size_t)width);
+    memset(s_obj_palette,0,(size_t)width*sizeof *s_obj_palette);
     if(s_fallback_enabled)memset(s_fallback_reason,0,(size_t)width*sizeof *s_fallback_reason);
     memset(s_npc_color,255,(size_t)width*sizeof s_npc_color[0]);
     DrawRidePreviewRow(obj,width,column,y0,l);
@@ -3647,7 +3655,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 if(expanded_rain)x=RainModulo(x,period);
                 for(;x<width;x+=period){
                     if(x<0 || slot>s_obj_slot[x])continue;
-                    if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_npc_color[x]=color;
+                    if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=SpritePaletteToken(pc);s_npc_color[x]=color;
                     if(!expanded_rain)break;
                 }
             }
@@ -3671,7 +3679,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 int x=ox+(flipx?-sx-1:sx)+column;if(x<0 || x>=width || slot>s_obj_slot[x])continue;
                 int pixel=TlkMdSpritesPixel(pose,sx,sy);if(pixel<=0)continue;
                 if(s_fallback_enabled)s_fallback_reason[x]=NULL;
-                obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;
+                obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=SpritePaletteToken(pc);
                 s_npc_color[x]=PreparedSplashColor((unsigned)pixel,1,palette,l->cgram);
             }
         }
@@ -3696,7 +3704,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 if(GraveyardPillarSample(pose,sx-16,sy,0,1,
                     s_md_npc_palette[pillar_role],l->cgram,&color)!=1)continue;
                 if(s_fallback_enabled)s_fallback_reason[x]=NULL;
-                obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_npc_color[x]=color;
+                obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=SpritePaletteToken(pc);s_npc_color[x]=color;
             }
         }
         /* Submit the shifted complete face once, with its original native
@@ -3737,7 +3745,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 int x=width/2+dx;if(x<0 || x>=width || slot>s_obj_slot[x])continue;
                 uint16_t color=0;if(TlkResourcesCaptionSample(caption,dx,sy,palette,l->cgram,&color)!=1)continue;
                 if(s_fallback_enabled)s_fallback_reason[x]=NULL;
-                obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_npc_color[x]=color;
+                obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=SpritePaletteToken(pc);s_npc_color[x]=color;
             }
         }
         for(unsigned i=0;i<s_frame.piece_count;i++) {
@@ -3772,7 +3780,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 int x=x0+dx;if(x<0 || x>=width || slot>s_obj_slot[x])continue;
                 uint16_t color;
                 if(TlkResourcesTitleSample(dx,sy,frames,palette,l->cgram,&color)!=1)continue;
-                if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_npc_color[x]=color;
+                if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|1u);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=SpritePaletteToken(pc);s_npc_color[x]=color;
             }
         }
         if (s_md_cub_frames) for (unsigned i=0;i<s_frame.piece_count;i++) {
@@ -3794,7 +3802,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                  * original SNES piece rectangles. Preserve their source
                  * pixels and the actor's OAM ordering instead of clipping. */
                 if (y==y0 && x>=0 && x<width && slot<=s_obj_slot[x]) {
-                    if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|(unsigned)extra[n].c);s_obj_slot[x]=(uint8_t)slot;s_npc_color[x]=0xffff;
+                    if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|(unsigned)extra[n].c);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=SpritePaletteToken(pc);s_npc_color[x]=0xffff;
                 }
             }
         }
@@ -3825,7 +3833,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 if (x<0 || x>=width || slot>s_obj_slot[x]) continue;
                 unsigned pixel=TlkMdHudPixel(kind,local_x,local_y);if (!pixel) continue;
                 unsigned index=128+pixel;
-                if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|index);s_obj_slot[x]=(uint8_t)slot;
+                if(s_fallback_enabled)s_fallback_reason[x]=NULL;obj[x]=(uint16_t)(z|index);s_obj_slot[x]=(uint8_t)slot;s_obj_palette[x]=PaletteToken("graphics.hud.palette");
                 s_npc_color[x]=SceneHudColor(index,l->cgram,l->cgram[index]);
             }
         }
@@ -4027,7 +4035,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                     (((unsigned)oy>>4)&65535)<<16 | (((unsigned)(ox+x)>>4)&65535),1);
             }
         }
-        c=SceneryCustomColor(layer,c);
+        c=layer>=4&&main==o?SpriteCustomColor(s_obj_palette[i],c):SceneryCustomColor(layer,c);
         unsigned r = c & mask, g = (c >> 5) & mask, b = (c >> 10) & mask;
         const uint8_t *map = mult;
         if (math_ok && !stampede_pixel && !(stampede_palette && (layer<=1 || layer==5)) && (l->cgadsub & 0x3F & (1u << layer))) {
@@ -4041,7 +4049,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 else if (sub_layer<=1 && md_scene) c2=TlkMdSceneModeColor(sub&255,(sub&0x800)!=0,(uint16_t)c2,s_scenery_palette[sub_layer]);
                 else if (sub & 0x800) c2 = TlkResourcesCubColor(s_md_level, sub & 255, l->cgram, (uint16_t)c2);
                 if (sub_layer>=4 && sub==o && s_npc_color[i]!=0xffff) c2=s_npc_color[i];
-                c2=SceneryCustomColor(sub_layer,c2);
+                c2=sub_layer>=4&&sub==o?SpriteCustomColor(s_obj_palette[i],c2):SceneryCustomColor(sub_layer,c2);
                 if (halve) map = half;
             }
             else if (add_sub) c2 = l->fixed;
@@ -4603,7 +4611,7 @@ static void AdultDeathActor(uint32_t *out,int width,int column) {
                 if(pixel<=0)continue;
                 unsigned index=128+(unsigned)pixel,color=l->cgram[index];
                 if(palette)color=TlkResourcesCubColor(rd16(s_frame.ram+0x1ff9e),index,l->cgram,(uint16_t)color);
-                color=TlkResourcesPaletteMap(rd16(s_frame.ram+0x1ff9e),2,(uint16_t)color);
+                color=SpriteDeathColor(rd16(s_frame.ram+0x1ff9e),(uint16_t)color);
                 unsigned r=color&31,g=(color>>5)&31,b=(color>>10)&31;
                 r=(r*8+(r>>2))*bright/15;g=(g*8+(g>>2))*bright/15;b=(b*8+(b>>2))*bright/15;
                 out[(size_t)dy*width+dx]=(r<<16)|(g<<8)|b;
@@ -4776,14 +4784,14 @@ bool TlkWideDraw(uint32_t *out, int width, bool hud_edges) {
                l->tmw || l->tsw || l->cgadsub || (l->cgram[0]&0x7fff))owned=0;
         }
         int handled=0;
-        if(owned && (timon_frames || timon_palette || timon_timing) &&
+        if(owned && (timon_frames || timon_palette || timon_timing || TlkResourcesPaletteCount(0) || TlkResourcesPaletteCount(1)) &&
            TlkInterlevelDataTimonBankMatches(s_frame.ram+0x10000,0x10000)) {
             unsigned phase=rd16(s_frame.ram+0xb241),timer=rd16(s_frame.ram+0xb23f),tick=0;
             int valid=(phase==1 && timer<=18) || (phase==2 && timer<=66) || (phase==3 && timer<=40);
             if(phase==1)tick=18-timer;else if(phase==2)tick=19+66-timer;else if(phase==3)tick=86+40-timer;
             uint8_t brightness[224];for(unsigned y=0;y<224;y++)brightness[y]=(s_frame.lines[y].inidisp&128)?0:s_frame.lines[y].inidisp&15;
             int ox=(width-(timon_position?320:256))/2+128,oy=timon_position?32:64;
-            if(valid)handled=TlkInterlevelDataRenderTimon(s_frame.pieces[0].pose,tick,timon_timing,timon_frames,timon_palette,ox,oy,(unsigned)width,s_frame.lines[0].cgram+128,brightness,out);
+            if(valid)handled=TlkInterlevelDataRenderTimonCustom(s_frame.pieces[0].pose,tick,timon_timing,timon_frames,timon_palette,ox,oy,(unsigned)width,s_frame.lines[0].cgram+128,brightness,out);
             if(handled){
                 static FILE *trace;const char *path=getenv("TLK_TIMON_PRESENTATION_TRACE");
                 if(path && !trace){trace=fopen(path,"w");if(trace)fputs("field,phase,timer,tick,native_pose,selected_pose,frames,palette,timing\n",trace);}
@@ -4897,6 +4905,11 @@ bool TlkWideDumpScene(const char *path) {
     if (!f) return false;
     fprintf(f,"{\n\"checkpoint_adapter\":{\"pixels\":%u,\"fallback_pixels\":%u,\"stale_pieces\":%u},\n",
             s_stats.checkpoint_pixels,s_stats.checkpoint_fallback_pixels,s_stats.checkpoint_stale_pieces);
+    fputs("\"sprite_colours\":[",f);int colour_comma=0;
+    for(unsigned i=0;i<16384;i++)if(s_sprite_shades[i]){
+        unsigned k=s_sprite_shades[i];const TlkResourceNode *n=TlkResourcesNode((int)(k>>16)-1);
+        if(n){fprintf(f,"%s[\"%s\",%u,%u]",colour_comma?",":"",n->id,(k>>15)&1,k&32767);colour_comma=1;}
+    }fputs("],\n",f);
     fprintf(f,"\"scenery_effects\":{\"native_motion\":%d,\"native_firelight\":%d,\"custom_colours\":%d},\n",s_native_background_motion,s_native_firelight,TlkResourcesPaletteCount(0));
     fprintf(f,"\"editable_colours\":[");for(unsigned t=0;t<3;t++){uint16_t colors[128];int count=TlkWidePaletteColors(t,colors,128);if(t)fputc(',',f);fputc('[',f);for(int i=0;i<count;i++)fprintf(f,"%s%u",i?",":"",colors[i]);fputc(']',f);}fputs("],\n",f);
 

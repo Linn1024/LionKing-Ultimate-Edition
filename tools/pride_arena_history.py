@@ -1209,6 +1209,10 @@ def bound(path):
     folders.append('fidelity7116-scenery-colour-publication')
     folders.append('fidelity7121-visual-audit-baseline')
     folders.append('fidelity7126-effects-publication')
+    folders.append('fidelity7130-sprite-colour-baseline')
+    folders.append('fidelity7147-sprite-colour-publication')
+    folders.append('fidelity7150-palette-ui-baseline')
+    folders.append('fidelity7158-palette-ui-publication')
     for folder in folders:
         archive=json.loads((ROOT/f'build/{folder}/report.json').read_text())
         for original,row in archive['historical_sources'].items():
