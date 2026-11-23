@@ -23,4 +23,4 @@ fan project. The combined runtime is noncommercial; see the packaged licenses.
 
 Optional external screen effects include a GLSL adaptation of the installed BizHawk 3xBRZ Linear recipe, HQ2x, scanlines and bicubic. Original shader source and notices are under engine/runner/shaders. GPL text accompanies 3xBRZ; shader resources retain their original licenses.
 
-The current source includes optional scenery effects, independent custom sprite colours and a stable palette editor with separate SNES/Genesis edits, pose previews, resets and preset saving. The Best enables the optional scenery effects. This source update does not replace the previously published Windows shader ZIP.
+The current source includes optional scenery effects, independent custom sprite colours and a stable palette editor with separate SNES/Genesis edits, pose previews, resets and preset saving. The Best enables the optional scenery effects. The Windows Custom Colours release includes these features.

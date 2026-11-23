@@ -2,10 +2,11 @@
 
 Your favourite parts of SNES and Genesis, together on PC.
 
-## [Download for Windows](https://github.com/Linn1024/LionKing-Ultimate-Edition/releases/download/windows-2026-11-21-shaders/LionKing-Ultimate-Edition-Windows.zip)
+## [Download for Windows](https://github.com/Linn1024/LionKing-Ultimate-Edition/releases/download/windows-2026-11-23-custom-colours/LionKing-Ultimate-Edition-Windows.zip)
 
 - Mix artwork, colours, music and gameplay from both versions.
 - Change character and scenery artwork while you play.
+- Create custom sprite and scenery colours with live previews.
 - Play in widescreen and save your own presets.
 - Choose screen effects, including 3xBRZ, HQ2x and scanlines.
 
