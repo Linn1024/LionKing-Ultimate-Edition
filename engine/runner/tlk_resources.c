@@ -176,6 +176,8 @@
 #include <windows.h>
 #endif
 
+#include "tlk_palette_editor.inc"
+
 /* Parent-before-child order is part of the schema; IDs persist across releases.
  * New leaves inherit naturally. Support is earned by a working adapter. */
 static TlkResourceNode nodes[] = {
@@ -713,6 +715,12 @@ static TlkResourceNode nodes[] = {
     {"graphics.scenery.foreground.palette", "Palette", 14, 1, 0, 1, "Choose the scenery colours without changing the drawings."},
     {"graphics.scenery.background.frames", "Artwork", 14, 1, 0, 1, "Choose the scenery drawings. Colours have their own choice."},
     {"graphics.scenery.background.palette", "Palette", 14, 1, 0, 1, "Choose the scenery colours without changing the drawings."},
+    {"graphics.scenery.snes_motion", "Motion on SNES backgrounds", 14, 0, 0, 0, "Independent presentation effects for SNES background artwork; original Genesis artwork retains its own motion."},
+    {"graphics.scenery.snes_motion.king", "King: water depth", 14, 1, 0, 1, "SNES keeps the original background motion; Genesis adds the original progressive water scroll to SNES artwork."},
+    {"graphics.scenery.snes_motion.hakuna", "Hakuna: layered mountains", 14, 1, 0, 1, "SNES keeps the original background motion; Genesis adds the verified mountain depth bands to SNES artwork."},
+    {"graphics.scenery.snes_motion.return", "Return: background depth", 14, 1, 0, 1, "SNES keeps its original scroll bands; Genesis uses the original 112/39/73 depth bands on SNES artwork."},
+    {"graphics.scenery.snes_motion.pride_rock", "Pride Rock: background depth", 14, 1, 0, 1, "SNES keeps its original background motion; Genesis uses the cave depth bands on SNES artwork."},
+    {"graphics.scenery.firelight", "Pride Rock: flickering firelight", 14, 1, 0, 1, "SNES keeps the static foreground colours; Genesis applies the original three-phase fire reflection to SNES colours. Genesis palette artwork already has its original cycle."},
 };
 enum { COUNT = sizeof nodes / sizeof nodes[0] };
 static int parents_ready;
@@ -822,9 +830,9 @@ int TlkResourcesSet(int i, int source) {
     } else draft[i] = (unsigned char)source;
     return 1;
 }
-int TlkResourcesDirty(void) { return memcmp(active, draft, sizeof active) != 0; }
-void TlkResourcesRevert(void) { memcpy(draft, active, sizeof draft); }
-void TlkResourcesDefaults(void) { memset(draft, 0, sizeof draft); draft[0] = TLK_SOURCE_SNES; }
+int TlkResourcesDirty(void) { return memcmp(active, draft, sizeof active) != 0 || PaletteDirty(); }
+void TlkResourcesRevert(void) { memcpy(draft, active, sizeof draft); PaletteRevert(); }
+void TlkResourcesDefaults(void) { memset(draft, 0, sizeof draft); draft[0] = TLK_SOURCE_SNES; TlkResourcesPaletteReset(-1,-1); }
 void TlkResourcesGraphicsPreset(void) {
     TlkResourcesDefaults();
     const char *ids[]={"display.viewport","graphics.scenery","graphics.sprites.simba.cub.palette","graphics.sprites.simba.adult.palette"};
@@ -876,6 +884,7 @@ int TlkResourcesHudFramesMd(unsigned kind) {
 }
 int TlkResourcesHasMd(void) { return md_ready; }
 int TlkResourcesPresentation(void) {
+    if(TlkResourcesPaletteCount(0))return 1;
     /* Support independent/new graphics leaves in native width. The existing
      * expression below also owns stable game-patch anchors and viewport modes. */
     if(md_ready)for(int i=0;i<COUNT;i++)if(nodes[i].leaf && nodes[i].md_supported &&
@@ -1373,6 +1382,7 @@ void TlkResourcesInit(const uint8_t *snes, size_t size, const char *md_path, con
     TlkReactivationDataClear();
     TlkHitboxDataClear();
     TlkInterlevelDataClear();TlkBonusResultDataClear();TlkCantWaitDataClear();TlkHuntDataClear();
+    memset(palette_count,0,sizeof palette_count);memset(palette_lut_valid,0,sizeof palette_lut_valid);palette_preview=0;
     memset(active, 0, sizeof active); active[0] = TLK_SOURCE_SNES;
     memset(snes_cub, 0, sizeof snes_cub);
     if (snes && size >= 0x7bb3)
@@ -1390,6 +1400,7 @@ void TlkResourcesInit(const uint8_t *snes, size_t size, const char *md_path, con
         if (line[0] == ';' || line[0] == '#' || line[0] == '\n') continue;
         if (sscanf(line, "%127s = %31s", id, value) != 2) { invalid = 1; continue; }
         if (!strcmp(id, "schema")) { schema = !strcmp(value, "1"); continue; }
+        int custom=PaletteParse(id,value);if(custom>=0){if(!custom)invalid=1;continue;}
         int i = TlkResourcesFind(id);
         int source = !strcmp(value,"inherit") ? 0 : !strcmp(value,"snes") ? 1 : !strcmp(value,"md") ? 2 : -1;
         if (i < 0 || !TlkResourcesSet(i, source)) invalid = 1;
@@ -1400,7 +1411,7 @@ void TlkResourcesInit(const uint8_t *snes, size_t size, const char *md_path, con
         TlkResourcesRevert();
         snprintf(status, sizeof status, "Profile rejected; SNES defaults active (file kept)");
     } else {
-        memcpy(active, draft, sizeof active);
+        memcpy(active, draft, sizeof active);PaletteCommit();
         snprintf(status, sizeof status, "Saved resource profile loaded");
     }
 }
@@ -1415,6 +1426,7 @@ int TlkResourcesApply(void) {
     static const char *names[] = {"inherit", "snes", "md"};
     for (int i = 0; i < COUNT; i++)
         if (fprintf(f, "%s = %s\n", nodes[i].id, names[draft[i]]) < 0) ok = 0;
+    if(!PaletteWrite(f))ok=0;
     if (fclose(f)) ok = 0;
 #ifdef _WIN32
     if (ok) ok = MoveFileExA(temp, profile_path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
@@ -1422,7 +1434,7 @@ int TlkResourcesApply(void) {
     if (ok) ok = rename(temp, profile_path) == 0;
 #endif
     if (!ok) { remove(temp); snprintf(status, sizeof status, "Cannot save profile; active choices unchanged"); return 0; }
-    memcpy(active, draft, sizeof active);
+    memcpy(active, draft, sizeof active);PaletteCommit();
     snprintf(status, sizeof status, "Applied and saved");
     return 1;
 }

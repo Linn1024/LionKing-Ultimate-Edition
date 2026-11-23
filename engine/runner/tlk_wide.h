@@ -71,6 +71,7 @@ bool TlkWideDrawArea(uint32_t *out,int width,int height,bool hud_edges,int *nati
 
 /* Paused UI preview. Retains the latched raster and presentation histories. */
 bool TlkWidePreview(uint32_t *out,int width);
+int TlkWidePaletteColors(unsigned target,uint16_t *out,int capacity);
 TlkWideStats TlkWideGetStats(void);
 /* Fresh completed guest draw passes latched for display, excluding reuploads
  * of an unchanged busy-frame OAM list. Read-only diagnostic counter. */

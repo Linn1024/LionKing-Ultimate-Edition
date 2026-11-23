@@ -15,9 +15,10 @@ static bool ValidName(const std::string &name) {
 }
 static std::string Path(const std::string &dir,const std::string &name) {return dir+"/"+name+".ini";}
 static std::vector<int> Choices(int draft=1) {
-    std::vector<int> values(TlkResourcesCount());for(int i=0;i<(int)values.size();i++)values[i]=TlkResourcesChoice(i,draft);return values;
+    std::vector<int> values(TlkResourcesCount());for(int i=0;i<(int)values.size();i++)values[i]=TlkResourcesChoice(i,draft);
+    for(int n=0;n<TlkResourcesPaletteCount(draft);n++){int e[4];TlkResourcesPaletteEntry(n,draft,e);values.insert(values.end(),e,e+4);}return values;
 }
-static void Set(const std::vector<int> &values){for(int i=0;i<(int)values.size();i++)TlkResourcesSet(i,values[i]);}
+static void Set(const std::vector<int> &values){int count=TlkResourcesCount();for(int i=0;i<count&&i<(int)values.size();i++)TlkResourcesSet(i,values[i]);TlkResourcesPaletteReset(-1,-1);for(size_t i=count;i+3<values.size();i+=4)TlkResourcesPaletteSet(values[i],values[i+1],values[i+2],values[i+3]);}
 static bool Read(const std::string &path,std::vector<int> &values,std::string &message) {
     SDL_PathInfo info;if(!SDL_GetPathInfo(path.c_str(),&info)||info.size>1024*1024){message="Could not read this preset, or the file is too large.";return false;}
     size_t size=0;char *raw=(char*)SDL_LoadFile(path.c_str(),&size);
@@ -30,15 +31,23 @@ static bool Read(const std::string &path,std::vector<int> &values,std::string &m
         char id[160],value[32],extra;
         if(std::sscanf(line.c_str(),"%159s = %31s %c",id,value,&extra)!=2){valid=false;break;}
         if(!std::strcmp(id,"schema")){if(schema||std::strcmp(value,"1"))valid=false;schema=true;continue;}
+        if(!std::strncmp(id,"colour.",7)){
+            unsigned l,t,c,to;char tail;
+            if(std::sscanf(id,"colour.%u.%u.%x%c",&l,&t,&c,&tail)!=3||std::sscanf(value,"%x%c",&to,&tail)!=1||l>=14||t>=3||c>32767||to>32767||values.size()>=(size_t)TlkResourcesCount()+4096){valid=false;break;}
+            for(size_t i=TlkResourcesCount();i+3<values.size();i+=4)if(values[i]==(int)l&&values[i+1]==(int)t&&values[i+2]==(int)c)valid=false;
+            values.insert(values.end(),{(int)l,(int)t,(int)c,(int)to});continue;
+        }
         int index=TlkResourcesFind(id),source=!std::strcmp(value,"inherit")?0:!std::strcmp(value,"snes")?1:!std::strcmp(value,"md")?2:-1;
         if(index<0||source<0||values[index]>=0||(!index&&!source)){valid=false;break;}values[index]=source;
     }
+    for(int i=0;i<TlkResourcesCount();i++)if(values[i]<0){const char *id=TlkResourcesNode(i)->id;if(std::strstr(id,"graphics.scenery.snes_motion")==id||!std::strcmp(id,"graphics.scenery.firelight"))values[i]=0;}
     if(!valid||!schema||std::find(values.begin(),values.end(),-1)!=values.end()){message="This preset is incomplete or incompatible. Your choices have not changed.";return false;}
     return true;
 }
 static std::string Text(const std::vector<int> &values) {
     std::string text="; Lion King custom resource preset\nschema = 1\n";const char *sources[]={"inherit","snes","md"};
-    for(int i=0;i<(int)values.size();i++)text+=std::string(TlkResourcesNode(i)->id)+" = "+sources[values[i]]+"\n";return text;
+    for(int i=0;i<TlkResourcesCount();i++)text+=std::string(TlkResourcesNode(i)->id)+" = "+sources[values[i]]+"\n";
+    for(size_t i=TlkResourcesCount();i+3<values.size();i+=4){char line[100];std::snprintf(line,sizeof line,"colour.%d.%d.%04x = %04x\n",values[i],values[i+1],values[i+2],values[i+3]);text+=line;}return text;
 }
 static bool Write(const std::string &path,const std::vector<int> &values,std::string &message) {
     std::string text=Text(values),temp=path+".tmp-"+std::to_string(SDL_GetTicksNS());

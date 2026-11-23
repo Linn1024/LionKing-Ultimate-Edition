@@ -1204,6 +1204,11 @@ def bound(path):
     folders.append('fidelity7102-screen-effects-publication')
     folders.append('fidelity7103-bizhawk-shader-baseline')
     folders.append('fidelity7106-bizhawk-shader-publication')
+    folders.append('fidelity7109-scenery-colours-baseline')
+    folders.append('fidelity7112-visual-profile-binding')
+    folders.append('fidelity7116-scenery-colour-publication')
+    folders.append('fidelity7121-visual-audit-baseline')
+    folders.append('fidelity7126-effects-publication')
     for folder in folders:
         archive=json.loads((ROOT/f'build/{folder}/report.json').read_text())
         for original,row in archive['historical_sources'].items():

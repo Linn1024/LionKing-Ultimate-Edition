@@ -16,6 +16,13 @@ typedef struct TlkResourceNode {
     const char *scope;
 } TlkResourceNode;
 
+/* Custom colours are per level and foreground/background/objects, independent of source. */
+int TlkResourcesPaletteCount(int draft);
+int TlkResourcesPaletteEntry(int index,int draft,int out[4]);
+int TlkResourcesPaletteSet(int level,int layer,int from,int to);
+void TlkResourcesPaletteReset(int level,int layer);
+void TlkResourcesPalettePreview(int on);
+uint16_t TlkResourcesPaletteMap(unsigned level,unsigned layer,uint16_t color);
 void TlkResourcesInit(const uint8_t *snes, size_t size, const char *md_path, const char *profile);
 void TlkResourcesSetCachePath(const char *path,int prepare);
 void TlkResourcesSetTitleAssetsPath(const char *path);

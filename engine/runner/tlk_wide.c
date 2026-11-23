@@ -76,8 +76,12 @@ extern void (*g_tlk_raster_observer)(const Ppu *ppu, unsigned line, void *contex
  * read live choices. Large/tall views otherwise repeat these lookups per row. */
 static struct {const char *id;unsigned epoch;int value;} s_draw_choices[2048];
 static unsigned s_draw_choice_epoch;
+static uint32_t s_sprite_colour_seen[1024];
+static int s_custom_palette_colours;
 static int s_draw_choices_active;
 static void DrawChoicesBegin(void) {
+    memset(s_sprite_colour_seen,0,sizeof s_sprite_colour_seen);
+    s_custom_palette_colours=TlkResourcesPaletteCount(0)||TlkResourcesPaletteCount(1);
     if(!++s_draw_choice_epoch){memset(s_draw_choices,0,sizeof s_draw_choices);s_draw_choice_epoch=1;}
     s_draw_choices_active=1;
 }
@@ -405,6 +409,11 @@ static int DeathApproach(int distance,unsigned steps) {
     if((unsigned)amount>steps)amount=(int)steps;
     return distance<0?distance+amount:distance-amount;
 }
+static int CustomObjectColours(unsigned level) {
+    int count=TlkResourcesPaletteCount(0);
+    for(int i=0;i<count;i++){int e[4];if(TlkResourcesPaletteEntry(i,0,e)&&e[0]==(int)level&&e[1]==2)return 1;}
+    return 0;
+}
 static void GraveyardDeathActor(uint32_t *out,int width) {
     if(!GraveyardDeathSelected() || s_gy_death.age>=249)return;
     unsigned level=rd16(s_frame.ram+0x1ff9e),adult=level>=6,pose;
@@ -431,7 +440,7 @@ static void GraveyardDeathActor(uint32_t *out,int width) {
     for(int y=by;y<by+bh;y++)for(int x=bx;x<bx+bw;x++){
         int dx=px+x,dy=py+y;if(dx<0 || dx>=width || dy<0 || dy>=TLK_WIDE_HEIGHT)continue;
         int pixel=adult?TlkMdSpritesPixel(pose,x,y):TlkMdSpritesCubDeathPixel(pose,x,y,frames);if(pixel<=0)continue;
-        unsigned color=scene_colors?scene_colors[pixel]:TlkResourcesCubColor(level,128+(unsigned)pixel,colors,colors[128+pixel]);uint32_t rgb=0;
+        unsigned color=scene_colors?scene_colors[pixel]:TlkResourcesCubColor(level,128+(unsigned)pixel,colors,colors[128+pixel]);color=TlkResourcesPaletteMap(level,2,(uint16_t)color);uint32_t rgb=0;
         for(unsigned c=0;c<3;c++){
             unsigned v=(color>>(c*5))&31,sub=fade*4;v=v>sub?v-sub:0;
             rgb|=(v*8+(v>>2))<<(c==0?16:c==1?8:0);
@@ -2095,6 +2104,35 @@ static void PreparePanorama(const Line *l,unsigned level) {
 
 /* Expanded native scenery has no per-pixel blend in these normal rows.
  * Resolve its selected palette once, preserving the existing scene-color hook. */
+
+/* Original MD scroll callbacks applied to the native BG2 artwork only.
+ * Each source keeps its own name table, vertical scroll and priority. */
+static int s_native_background_motion,s_native_firelight;
+static int SceneryFloor(int n,unsigned shift){return n>=0?n/(1<<shift):-((-n+(1<<shift)-1)/(1<<shift));}
+static int NativeMotionOffset(unsigned level,int camera,int y){
+ if(level==1)return (int)TlkMdCantWaitLineOffset((unsigned)camera,s_cant_wait.wrap,(unsigned)y);
+ if(level==5){int row=s_bg_camera[1]*5/16+y;return row<8?0:SceneryFloor(camera,row<144?3:row<240?2:1);}
+ if(level==8)return SceneryFloor(camera,y<112?3:y<151?2:1);
+ if(level==9)return SceneryFloor(camera,y<96?1:y<184?2:1);
+ return 0;
+}
+static unsigned SceneryCustomColor(unsigned layer,unsigned color){
+ unsigned target=layer==0?0:layer==1||layer==5?1:2;
+ if(target==2)s_sprite_colour_seen[(color&32767)>>5]|=1u<<(color&31);
+ if(s_custom_palette_colours)color=TlkResourcesPaletteMap(s_md_level,target,(uint16_t)color);
+ if(target || !s_native_firelight)return color;
+ unsigned phase=s_scene_animation.phase;if(phase>=3)return color;
+ static uint8_t tags[32768];static uint16_t cache[32768];
+ if(tags[color]==phase+1)return cache[color];
+ unsigned result=color,r=color&31,g=color>>5&31,b=color>>10&31;
+ const uint16_t *base=TlkNextScenePrideRockPhase(2),*now=TlkNextScenePrideRockPhase(phase);
+ if(base&&now&&r>g&&r>b){
+  unsigned best=~0u,index=16;
+  for(unsigned j=16;j<64;j++){int dr=(int)r-(base[j]&31),dg=(int)g-(base[j]>>5&31),db=(int)b-(base[j]>>10&31);unsigned d=dr*dr+dg*dg+db*db;if(d<best){best=d;index=j;}}
+  result=0;for(unsigned sh=0;sh<=10;sh+=5){int v=(int)(color>>sh&31)+(int)(now[index]>>sh&31)-(int)(base[index]>>sh&31);if(v<0)v=0;if(v>31)v=31;result|=(unsigned)v<<sh;}
+ }
+ tags[color]=(uint8_t)(phase+1);cache[color]=(uint16_t)result;return result;
+}
 static struct {unsigned epoch,bright;uint16_t colors[128];uint32_t rgb[128];} s_bg_rgb[2];
 static const uint32_t *NativeBackgroundRgb(unsigned slot,const uint16_t *colors,unsigned bright,
                                          const uint8_t *mult,int md_scene,int king) {
@@ -2104,6 +2142,7 @@ static const uint32_t *NativeBackgroundRgb(unsigned slot,const uint16_t *colors,
         memcpy(s_bg_rgb[slot].colors,colors,128*sizeof *colors);
         for(unsigned i=0;i<128;i++){
             unsigned c=king?s_cw_native_mapped[slot][i]:md_scene?TlkMdSceneModeColor(i,0,colors[i],s_scenery_palette[slot]):colors[i];
+            c=SceneryCustomColor(slot,c);
             s_bg_rgb[slot].rgb[i]=(uint32_t)mult[c&31]<<16|(uint32_t)mult[c>>5&31]<<8|mult[c>>10&31];
         }
     }
@@ -2124,6 +2163,7 @@ static const uint32_t *NativeFixedBackgroundRgb(unsigned layer,const Line *l,uns
         memcpy(cache[layer].colors,l->cgram,sizeof cache[layer].colors);
         for(unsigned i=0;i<128;i++){
             unsigned c=king?s_cw_native_mapped[layer][i]:md_scene?TlkMdSceneModeColor(i,0,l->cgram[i],s_scenery_palette[layer]):l->cgram[i];
+            c=SceneryCustomColor(layer,c);
             unsigned r=c&31,g=c>>5&31,b=c>>10&31;const uint8_t *map=mult;
             if(l->cgadsub&(1u<<layer)){
                 unsigned r2=l->fixed&31,g2=l->fixed>>5&31,b2=l->fixed>>10&31;
@@ -2138,6 +2178,7 @@ static const uint32_t *NativeFixedBackgroundRgb(unsigned layer,const Line *l,uns
 }
 static uint32_t NativeFixedBackdropRgb(const Line *l,const uint8_t *mult,const uint8_t *half) {
     unsigned c=s_cw_scene && !s_cw_palette_mode?s_cw_native_mapped[1][0]:l->cgram[0];
+    c=SceneryCustomColor(5,c);
     unsigned r=c&31,g=c>>5&31,b=c>>10&31;const uint8_t *map=mult;
     if(l->cgadsub&0x20){
         unsigned r2=l->fixed&31,g2=l->fixed>>5&31,b2=l->fixed>>10&31;
@@ -3455,6 +3496,9 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
      * every authored row instead of a224-row slice clipped by camera vofs.
      * Nearest-row fitting changes scenery only; foreground and actors retain
      * their pixel dimensions and original gameplay coordinates. */
+    const char *motion_id=s_md_level==1?"graphics.scenery.snes_motion.king":s_md_level==5?"graphics.scenery.snes_motion.hakuna":s_md_level==8?"graphics.scenery.snes_motion.return":s_md_level==9?"graphics.scenery.snes_motion.pride_rock":NULL;
+    s_native_background_motion=!s_md_background && motion_id && (s_cw_scene || hakuna || simbas_return || pride_rock || postfight_scene) && TlkResourcesUseMd(motion_id);
+    s_native_firelight=(pride_rock || postfight_scene) && !TlkResourcesUseMd("graphics.scenery.foreground.palette") && TlkResourcesUseMd("graphics.scenery.firelight");
     int background_y=y0;
     const Line *background_line=l;
     Line panorama;
@@ -3491,6 +3535,13 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         }
     }
     s_scenery_palette[0]=TlkResourcesUseMd("graphics.scenery.foreground.palette");
+    Line moving_background,moving_source;
+    if(s_native_background_motion){
+        moving_background=*background_line;
+        int row=background_y;if(row<0)row=0;if(row>223)row=223;
+        moving_background.hofs[1]=(uint16_t)NativeMotionOffset(s_md_level,s_md_level==1?s_cant_wait.camera:s_bg_camera[0],row);
+        background_line=&moving_background;moving_source=*l;moving_source.hofs[1]=moving_background.hofs[1];l=&moving_source;
+    }
     s_scenery_palette[1]=TlkResourcesUseMd("graphics.scenery.background.palette");
     int md_palette=md_scene && s_scenery_palette[0];
     if (md_scene) TlkMdScenePalette(s_md_level,l->cgram,md_palette);
@@ -3820,13 +3871,13 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         unsigned native = 0, margin = 0, samples = 0;
         for (int x = 0; x < 256; x += 4)
             native += (layer==1 && cached_return_bg && x+column>=0 && x+column<width?
-                native_background[x+column]:BgPixel(l,vram,layer,x,y0,false,ox,oy,column,width))!=0;
+                native_background[x+column]:BgPixel(layer==1?background_line:l,s_vram[(layer==1?background_line:l)->vram],layer,x,y0,false,ox,oy,column,width))!=0;
         const int sides[2][2] = { { -column, 0 }, { 256, width - column } };
         for (int side = 0; side < 2; side++) {
             if (layer == 0 && (side ? map_right : map_left)) continue;   /* drawn from the level map */
             for (int x = sides[side][0]; x < sides[side][1]; x += 2, samples++)
                 margin += (layer==1 && cached_return_bg?native_background[x+column]:
-                    BgPixel(l,vram,layer,x,y0,false,ox,oy,column,width))!=0;
+                    BgPixel(layer==1?background_line:l,s_vram[(layer==1?background_line:l)->vram],layer,x,y0,false,ox,oy,column,width))!=0;
         }
         mirror[layer] = samples && margin * 10 <= samples && native * 10 >= 64 * 9;
     }
@@ -3863,7 +3914,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     int native_backdrop_ready=fast_fixed || (fast_native && !(l->tm&4) && !(l->cgadsub&0x20));
     uint32_t native_backdrop=native_backdrop_ready?NativeFixedBackdropRgb(l,mult,half):0;
 
-    int panorama_scroll=anchor_pride?PanoramaScroll(background_line):0;
+    int panorama_scroll=anchor_pride?(s_native_background_motion?(int)background_line->hofs[1]:PanoramaScroll(background_line)):0;
     const uint16_t *bottom_background=BottomBackgroundRow(l,width,column,y0,ox,oy);
     uint16_t native_foreground[TLK_WIDE_MAX_WIDTH];
     int fast_native_row=world_row && fast_native && (anchor_pride || fitted_bands) && !s_native_md_layout &&
@@ -3976,6 +4027,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                     (((unsigned)oy>>4)&65535)<<16 | (((unsigned)(ox+x)>>4)&65535),1);
             }
         }
+        c=SceneryCustomColor(layer,c);
         unsigned r = c & mask, g = (c >> 5) & mask, b = (c >> 10) & mask;
         const uint8_t *map = mult;
         if (math_ok && !stampede_pixel && !(stampede_palette && (layer<=1 || layer==5)) && (l->cgadsub & 0x3F & (1u << layer))) {
@@ -3989,6 +4041,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 else if (sub_layer<=1 && md_scene) c2=TlkMdSceneModeColor(sub&255,(sub&0x800)!=0,(uint16_t)c2,s_scenery_palette[sub_layer]);
                 else if (sub & 0x800) c2 = TlkResourcesCubColor(s_md_level, sub & 255, l->cgram, (uint16_t)c2);
                 if (sub_layer>=4 && sub==o && s_npc_color[i]!=0xffff) c2=s_npc_color[i];
+                c2=SceneryCustomColor(sub_layer,c2);
                 if (halve) map = half;
             }
             else if (add_sub) c2 = l->fixed;
@@ -4525,7 +4578,7 @@ static bool AdultDeathFrame(void) {
 static void AdultDeathActor(uint32_t *out,int width,int column) {
     int frames=TlkResourcesUseMd("graphics.sprites.simba.adult.frames");
     int palette=TlkResourcesUseMd("graphics.sprites.simba.adult.palette");
-    if(GraveyardDeathSelected() || (!frames && !palette) || !AdultDeathFrame())return;
+    if(GraveyardDeathSelected() || (!frames && !palette && !CustomObjectColours(rd16(s_frame.ram+0x1ff9e))) || !AdultDeathFrame())return;
     for(unsigned remaining=s_frame.piece_count;remaining;remaining--) {
         const Piece *p=&s_frame.pieces[remaining-1];
         if(!p->kept || p->fixed || p->actor_descriptor!=0xc5858a || !CubPiece(p) ||
@@ -4550,6 +4603,7 @@ static void AdultDeathActor(uint32_t *out,int width,int column) {
                 if(pixel<=0)continue;
                 unsigned index=128+(unsigned)pixel,color=l->cgram[index];
                 if(palette)color=TlkResourcesCubColor(rd16(s_frame.ram+0x1ff9e),index,l->cgram,(uint16_t)color);
+                color=TlkResourcesPaletteMap(rd16(s_frame.ram+0x1ff9e),2,(uint16_t)color);
                 unsigned r=color&31,g=(color>>5)&31,b=(color>>10)&31;
                 r=(r*8+(r>>2))*bright/15;g=(g*8+(g>>2))*bright/15;b=(b*8+(b>>2))*bright/15;
                 out[(size_t)dy*width+dx]=(r<<16)|(g<<8)|b;
@@ -4843,6 +4897,9 @@ bool TlkWideDumpScene(const char *path) {
     if (!f) return false;
     fprintf(f,"{\n\"checkpoint_adapter\":{\"pixels\":%u,\"fallback_pixels\":%u,\"stale_pieces\":%u},\n",
             s_stats.checkpoint_pixels,s_stats.checkpoint_fallback_pixels,s_stats.checkpoint_stale_pieces);
+    fprintf(f,"\"scenery_effects\":{\"native_motion\":%d,\"native_firelight\":%d,\"custom_colours\":%d},\n",s_native_background_motion,s_native_firelight,TlkResourcesPaletteCount(0));
+    fprintf(f,"\"editable_colours\":[");for(unsigned t=0;t<3;t++){uint16_t colors[128];int count=TlkWidePaletteColors(t,colors,128);if(t)fputc(',',f);fputc('[',f);for(int i=0;i<count;i++)fprintf(f,"%s%u",i?",":"",colors[i]);fputc(']',f);}fputs("],\n",f);
+
 
     fprintf(f,"\"ride_preview\":{\"cursor\":%u,\"drawings\":%u,\"pixels\":%u,\"visible_pixels\":%u,\"items\":[",s_ride_cursor,s_ride_preview_count,s_ride_preview_pixels,s_ride_preview_visible);
     for(unsigned i=0;i<s_ride_preview_count;i++){
@@ -4954,3 +5011,17 @@ bool TlkWideDumpScene(const char *path) {
 }
 
 #undef TlkResourcesUseMd
+
+int TlkWidePaletteColors(unsigned target,uint16_t *out,int capacity){
+ if(!out||capacity<1||target>2||!s_frame.stage)return 0;
+ const Line *l=WorldPresentationLine(112);int count=0;
+ if(target==2){for(unsigned word=0;word<1024&&count<capacity;word++)if(s_sprite_colour_seen[word])for(unsigned bit=0;bit<32&&count<capacity;bit++)if(s_sprite_colour_seen[word]&(1u<<bit))out[count++]=(uint16_t)(word*32+bit);if(count)return count;}
+
+ int external=target<2&&TlkResourcesUseMd(target?"graphics.scenery.background":"graphics.scenery.foreground");
+ uint16_t md[64];int md_ok=TlkMdScenePaletteColors(s_md_level,md);
+ for(unsigned i=0;i<(external?64u:128u)&&count<capacity;i++){
+  unsigned c=target==2?l->cgram[128+i]:s_cw_scene?(external?s_cw_external[target][i]:s_cw_native_mapped[target][i]):TlkMdSceneModeColor(i,external,external&&md_ok?md[i]:l->cgram[i],s_scenery_palette[target<2?target:0]);
+  if(target==2)c=l->cgram[128+i];
+  int seen=0;for(int j=0;j<count;j++)if(out[j]==c){seen=1;break;}if(!seen)out[count++]=(uint16_t)c;
+ }return count;
+}

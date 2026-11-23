@@ -421,6 +421,10 @@ static int practice_profile(uint8_t hash[32]) {
     uint32_t choices[1024];int count=TlkResourcesCount();if(count<0 || count>1024)return 0;
     int used=0;
     for(int n=0;n<count;n++) {
+        /* Optional presentation enhancements do not bind the gameplay save.
+         * Excluding the newly appended IDs also retains existing choice hashes. */
+        const char *resource_id=TlkResourcesNode(n)->id;
+        if(!strncmp(resource_id,"graphics.scenery.snes_motion",28) || !strcmp(resource_id,"graphics.scenery.firelight"))continue;
 #ifdef TLK_PRIDE_EXTRA_PROFILE_RESOURCE
         /* This owner's outer record binds its mode and presentation. */
         if(!strcmp(TlkResourcesNode(n)->id,TLK_PRIDE_EXTRA_PROFILE_RESOURCE))continue;

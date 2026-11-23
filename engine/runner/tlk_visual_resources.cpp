@@ -22,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include "tlk_browser_presets.h"
+#include "tlk_browser_palette_editor.h"
 #include "tlk_browser_preset_manager.h"
 #include "tlk_browser_placement_diagram.h"
 #include "tlk_browser_preset_manager.h"
@@ -335,6 +336,7 @@ const char *Explanation(const TlkResourceNode *n) {
     if(!n->leaf)return "Set a source for this whole branch. Choose a character, object or setting below to explore it.";
     if(!strcmp(n->id,"graphics.interlevel.pride_lands"))return "Both versions have an illustrated scene after Pride Lands. This build pairs each illustration with its own scene timing, chosen under Gameplay / Levels / Pride Lands. Speech is chosen separately.";
     if(strstr(n->id,"death_motion"))return "Changes the movement of the death animation. Sprite artwork and colors are separate choices.";
+    if(strstr(n->id,"snes_motion")||!strcmp(n->id,"graphics.scenery.firelight"))return n->scope;
     if(strstr(n->id,"palette"))return "Changes the colors. Animation drawings, gameplay and music stay independent.";
     if(strstr(n->id,"frames"))return "Changes the sprite drawings. Colors and gameplay timing are separate choices.";
     if(Starts(n->id,"audio.music"))return "Choose which version of this music plays. Artwork and gameplay stay independent.";
@@ -368,6 +370,8 @@ VersionComparison Comparison(const TlkResourceNode *n) {
     if(!strcmp(id,"graphics.scenery.timon_start_position"))return {"Timon stands at his original SNES opening-scene position.","He stands at his Genesis opening-scene position. This affects only the opening after Start."};
     if(!strcmp(id,"graphics.scenery.destiny_face_position"))return {"Mufasa's face appears at a fixed place in the sky.","Its position follows Simba's location at the end of Destiny."};
     if(strstr(id,".titles.")&&strstr(id,".position"))return {"Uses the SNES caption height, centred across the picture.","Uses the Genesis caption height, centred across the picture."};
+    if(strstr(id,"snes_motion"))return {"Keeps this SNES background's original scrolling.","Adds the Genesis depth-scrolling effect to SNES artwork. Genesis artwork already uses its original motion."};
+    if(!strcmp(id,"graphics.scenery.firelight"))return {"Keeps the SNES foreground's original static colours.","Makes the red SNES foreground highlights flicker using the Genesis fire cycle. Genesis colours already animate."};
     if(strstr(id,"palette"))return {"Uses the original SNES colours with your chosen drawings.","Uses the original Genesis colours with your chosen drawings. Mixed drawings use the closest available shades."};
     if(Starts(id,"audio"))return {"Uses this action's SNES sound or music. Listen below to compare it.","Uses this action's Genesis sound or music. A version with no separate cue stays silent; unavailable previews are labelled."};
     if(Starts(id,"graphics.menus")||!strcmp(id,"graphics.pride_final_menu"))return {"The SNES menu artwork, lettering and colours.","The Genesis menu artwork, lettering and colours. Button response and sounds are separate choices."};
@@ -451,7 +455,7 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
     SDL_UpdateTexture(font_texture,nullptr,font_pixels,fw*4);SDL_SetTextureBlendMode(font_texture,SDL_BLENDMODE_BLEND);SDL_SetTextureScaleMode(font_texture,SDL_SCALEMODE_NEAREST);
     io.Fonts->SetTexID((ImTextureID)(uintptr_t)font_texture);
     int selected=TlkResourcesFind("graphics"),title_node=-1,category=0,result=0;bool running=true,close_request=false,focus_changes=true;
-    char search[160]={};int sound_variant=0;Pictures pictures;Audition audio;std::string notice;
+    char search[160]={};int sound_variant=0;Pictures pictures;BrowserPaletteEditor palette_editor;Audition audio;std::string notice;
     const std::string preset_directory=BrowserPresets::Directory();
     BrowserPresetManager presets(preset_directory);
     char preset_name[65]={};std::string preset_error;bool create_preset=false;
@@ -522,6 +526,7 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
         if(pride_illustration)ImGui::TextColored(teal,"Scene artwork follows %s scene timing in this build.",Source(pride_scene_source));
         else ImGui::TextColored(teal,"Will use %s%s",Source(resolved),choice==0?" (inherited)":"");
         if(node->leaf&&!node->md_supported)ImGui::TextColored(gold,"This item currently supports SNES only.");
+        palette_editor.Draw(ren,selected);
         int timing=ChangeTiming(selected);
         const char *when=timing==TLK_CHANGE_GAME?"This choice requires a game restart.":timing==TLK_CHANGE_LEVEL?"This choice restarts the current level.":"This choice takes effect when you resume.";
         if(!strcmp(node->id,"graphics.menus.publisher_cards"))when="After Apply & save: publisher cards change on the next launch. The current opening is not replayed.";
@@ -697,7 +702,7 @@ extern "C" int TlkVisualResourcesOpen(SDL_Window *parent) {
         ImGui::End();ImGui::Render();SDL_SetRenderDrawColor(ren,13,8,30,255);SDL_RenderClear(ren);Render(ren,ImGui::GetDrawData());__real_SDL_RenderPresent(ren);
         SDL_Delay(8);
     }
-    audio.Stop();pictures.Clear();TlkResourcesPreviewEnd();if(!result)TlkResourcesRevert();
+    audio.Stop();pictures.Clear();palette_editor.Clear();TlkResourcesPreviewEnd();if(!result)TlkResourcesRevert();
     SDL_DestroyTexture(font_texture);ImGui_ImplSDL3_Shutdown();ImGui::DestroyContext();ImGui::SetCurrentContext(previous);
     SDL_DestroyTexture(menu_art.backdrop);menu_art.backdrop=nullptr;SDL_DestroyTexture(menu_art.logo);menu_art.logo=nullptr;SDL_DestroyTexture(menu_art.sun);menu_art.sun=nullptr;
     SDL_DestroyRenderer(ren);SDL_DestroyWindow(window);if(glwin&&gl)SDL_GL_MakeCurrent(glwin,gl);if(parent)SDL_RaiseWindow(parent);
