@@ -7,12 +7,12 @@
     "Play The Best - BizHawk Shader.cmd": "fa4caa8b75a5afe8b5cf251e028225af66480c6bda92f3f1042fbf755c90885a",
     "Play The Best.cmd": "43408dd1938bb070ea4d3256338171580ac3d282596d08adf01cadec3b1209cb",
     "Play.cmd": "43408dd1938bb070ea4d3256338171580ac3d282596d08adf01cadec3b1209cb",
-    "README.md": "ef65ab7e4baa179df2cd231d01c708865d33cfed47cee6e348fc6ecb8738dc31",
+    "README.md": "909c345e4e6020f0581e27d17c4cc9b96e807bf70a3fb7072b698adbb465bfce",
     "Record Video.cmd": "fa8a24b3bf68cc2b12528e10cb21329ece397802269f1ffea9ffa1d9f559bdff",
-    "SOURCE-NOTES.md": "782d9dcd66e9ae6c93f126f32b75becf5fb6cd75f425dac943944000268b2e7c",
+    "SOURCE-NOTES.md": "badbfb415d001e2af6f9cd49b427122d29748ca7ed8a6f8728e4ac4de4024636",
     "Setup.cmd": "db20c3736a4dfaccf689ed371c0020972442ba82eb05c258215ad29038e19323",
     "VIDEO-SCRIPT.md": "62eacbddb5d7b7ec810dd41c1c14133fe2a1f743d275e3d10c4211f9460c1217",
-    "docs/HANDOFF.md": "93ef10d0c37e44e1b2ffde8d22b40749560cfb6fa7e1088414cbf9eef95ebd58",
+    "docs/HANDOFF.md": "b6721df1ae758fab1b3f00b7a2feeaeb5b96d00190f992d178b8b8801d58983f",
     "docs/background-audit.md": "877cef2457649f99c041b265c5b1f1c4ee5f555b45b88d7d93303d9ee4161676",
     "engine/AGENTS.md": "cbcec247f1fd7e58531ea8a7794ee30109135c25f43e78c44c67cdc689913756",
     "engine/CMakeLists.txt": "57aa47337a406d0153b8b462d7d7c0ebf44249de159e64bbcb7ed464beb3b36d",
@@ -3128,7 +3128,7 @@
     "tools/windows_json_pipe.py": "82e13375739b402a3b22db77bacd99be09540243deedaebcad6fc9bb855e8e1b"
   },
   "upstream_tlkrecomp_revision": "3e5e202e15eb8d9c998318ea311e710bfcb9dcd2",
-  "player_sha256": "e6c0293585f6cb9ad76ca55094266fec1c3acacd5246a1622913c5496aeb3559",
+  "player_sha256": "3c52c97ed83500bf8ad5018d41b2e5daa040bb2b4403800432df9dff6008bab6",
   "local_validated_player_sha256": "3c52c97ed83500bf8ad5018d41b2e5daa040bb2b4403800432df9dff6008bab6",
-  "windows_release_note": "Published Windows Custom Colours release windows-2026-11-23-custom-colours is unchanged (player_sha256). local_validated_player_sha256 identifies the newer locally tested scenery-fix player."
+  "windows_release_note": "Windows Scenery Fixes release: windows-2026-11-24-scenery-fixes. Downloaded binary matches the tested installed player."
 }
