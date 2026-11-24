@@ -2110,15 +2110,23 @@ static void PreparePanorama(const Line *l,unsigned level) {
 /* Expanded native scenery has no per-pixel blend in these normal rows.
  * Resolve its selected palette once, preserving the existing scene-color hook. */
 
-/* Original MD scroll callbacks applied to the native BG2 artwork only.
- * Each source keeps its own name table, vertical scroll and priority. */
+/* Genesis depth rates adapted to SNES BG2's own authored source rows.
+ * Raster y is not a source row: SNES samples y+1+VOFS, and tall panoramas
+ * already select their source row directly. Keep each picture's joins. */
 static int s_native_background_motion,s_native_firelight;
 static int SceneryFloor(int n,unsigned shift){return n>=0?n/(1<<shift):-((-n+(1<<shift)-1)/(1<<shift));}
-static int NativeMotionOffset(unsigned level,int camera,int y){
- if(level==1)return (int)TlkMdCantWaitLineOffset((unsigned)camera,s_cant_wait.wrap,(unsigned)y);
- if(level==5){int row=s_bg_camera[1]*5/16+y;return row<8?0:SceneryFloor(camera,row<144?3:row<240?2:1);}
- if(level==8)return SceneryFloor(camera,y<112?3:y<151?2:1);
- if(level==9)return SceneryFloor(camera,y<96?1:y<184?2:1);
+static int NativeMotionOffset(unsigned level,int camera,int source_y){
+ if(level==1){
+  unsigned input=((unsigned)camera+s_cant_wait.wrap)&65535;
+  if(source_y<152)return (int)(input/4);
+  if(source_y<200)return (int)(input/2);
+  return (int)(input/2+((input*(unsigned)(source_y-199))>>7));
+ }
+ if(level==5)return source_y<8?0:SceneryFloor(camera,source_y<144?3:source_y<240?2:1);
+ /* Return's original SNES raster changes at displayed rows96 and152. */
+ if(level==8)return SceneryFloor(camera,source_y<97?3:source_y<153?2:1);
+ /* Source112 is below the cloud detail;184 is within the flat dark band. */
+ if(level==9)return SceneryFloor(camera,source_y<112?1:source_y<184?2:1);
  return 0;
 }
 static unsigned SceneryCustomColor(unsigned layer,unsigned color){
@@ -2309,11 +2317,11 @@ static uint16_t BgPixel(const Line *l, const uint16_t *vram, unsigned layer, int
             unsigned u=(unsigned)source_x&511;
             source_x=u<256?(int)u:511-(int)u;
         }
-        /* Pride's finite 64-column panorama has no authored negative columns.
-         * Extend its edge into added margins; retain every native PPU column. */
+        /* Keep the established left-margin extension before source zero.
+         * Positive scroll must retain the native512-column name-table wrap:
+         * clamping it pins the right-hand view to a single column near exit. */
         if (layer==1 && s_native_pride_bg_edges && (x<0 || x>=256)) {
             if (source_x<0) source_x=0;
-            if (source_x>511) source_x=511;
         }
         px = source_x & 1023;
         py = (int)(((unsigned)y0 + 1 + l->vofs[layer]) & 1023);
@@ -3545,7 +3553,8 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     Line moving_background,moving_source;
     if(s_native_background_motion){
         moving_background=*background_line;
-        int row=background_y;if(row<0)row=0;if(row>223)row=223;
+        int row=anchor_pride?background_y:
+            (background_y+1+(int)background_line->vofs[1])&255;
         moving_background.hofs[1]=(uint16_t)NativeMotionOffset(s_md_level,s_md_level==1?s_cant_wait.camera:s_bg_camera[0],row);
         background_line=&moving_background;moving_source=*l;moving_source.hofs[1]=moving_background.hofs[1];l=&moving_source;
     }

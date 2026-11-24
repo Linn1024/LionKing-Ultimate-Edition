@@ -1,6 +1,6 @@
 # Source snapshot and credits
 
-This is the maintained project source snapshot accompanying the Windows shader update.
+This is the maintained source snapshot for The Lion King: Ultimate Edition.
 The working Windows binary has been built incrementally from reviewed local
 objects. A byte-for-byte clean rebuild from this snapshot is not yet certified;
 use the Windows ZIP in Releases to play. Some development tools reference local
@@ -24,3 +24,5 @@ fan project. The combined runtime is noncommercial; see the packaged licenses.
 Optional external screen effects include a GLSL adaptation of the installed BizHawk 3xBRZ Linear recipe, HQ2x, scanlines and bicubic. Original shader source and notices are under engine/runner/shaders. GPL text accompanies 3xBRZ; shader resources retain their original licenses.
 
 The current source includes optional scenery effects, independent custom sprite colours and a stable palette editor with separate SNES/Genesis edits, pose previews, resets and preset saving. The Best enables the optional scenery effects. The Windows Custom Colours release includes these features.
+
+The source now also fixes scenery shade-selection stability, adapts optional Genesis scrolling to the SNES artwork boundaries, and corrects Pride Lands background wrapping. These fixes are tested locally; the published Windows Custom Colours ZIP is unchanged.

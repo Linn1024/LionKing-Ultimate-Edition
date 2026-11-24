@@ -1,3 +1,38 @@
+## Delivery7175: SNES artwork boundaries and positive Pride wrap
+
+Supersedes7116's use of MD row numbers on SNES artwork. Sources/planes are
+still independent. No asset completeness, new background plane or save-format
+claim; capability strings and existing per-scene expanded-view recipes remain.
+
+All five scenes retain their own native Mode1 BG2, 8px tiles, BGSC49 hex
+(512x256 VRAM name-table ring), captured tile base/CGRAM/priority/math and
+vertical scroll. BG1 remains the independently selected terrain; BG3 is HUD/text.
+Normal SNES BG2 sampling addresses source y = (raster y + 1 + captured VOFS)&255.
+The tall King panorama already supplies its decoded authored source row directly;
+it must not receive that extra +1/VOFS or the old223-row truncation.
+
+| Scene / initialization owner | Native artwork evidence and corrected optional motion |
+| --- | --- |
+| Pride Lands C00387 / C0080D | Original descriptor+1A supplies the45-row panorama, streamed into native VRAM. The initialized BGSC49 has a512-column horizontal period. Retain the existing negative added-margin extension before source zero. Positive columns past511 must use the original name-table wrap, not repeat column511. Current normal320x224 SNES-scenery/MD-gameplay fixture at2617 has camera1114/276, BG2 scroll208/33;45 physical right-edge columns expose the old smear (1260 changed pixels). Original256 picture and entire WRAM/native frame remain exact. Width800/height224 also exposes the defect; the already fitted tall panorama does not use this clamp and stays exact. |
+| King C003B9 | Original descriptor+1A native map is64x31 cells (248 rows). Probe7170 shows row151 still plain sky and hill detail beginning at source152; hills include bottom shading through199, with a plain water join at200. Use quarter-rate before152, half-rate152..199, then the existing progressive water coefficient from200 through247. Normal raster row151 therefore belongs to the hills, while a tall source row151 still belongs to sky. Preserve the original MD camera/wrap accumulator and native sun/palette clocks. MD artwork retains its own152/192 displayed-row schedule. |
+| Hakuna C00481 | Captured native VOFS is4 at entry and73 at the moving normal fixture; the MD Y5/16 estimate is not the same source coordinate. Native source bands8/144/240 lie in flat rows: the full probe has uniform source131..153 and223..255. Apply eighth/quarter/half horizontal rates to the actual selected native source row, not MD-camera Y plus raster y. Native waterfall tile uploads, vertical scroll, initialization and terrain remain unchanged. |
+| Return C00517 | Native raster records change horizontal bands at displayed96 and152, corresponding to source97 and153 with VOFS0. Preserve these existing SNES joins while optionally using MD eighth/quarter/half depth rates. Do not impose MD displayed112/151 boundaries. Native color math remains captured (including the sub-screen phase). |
+| Pride Rock C00549 / summit C007DB | Source96 crosses detailed clouds; source111..113 is horizontally uniform. Keep the whole upper cloud detail at half-rate until source112; use quarter-rate until the existing plain dark source184 join, then half-rate. The open summit fixture makes the corrected clouds visible (26118 normal-window pixels differ); the entry fixture's foreground hides this band and is not counted as positive visual proof. Retain the original native vertical origin, live color phases, firelight choice and later rain ownership. |
+
+Evidence: build/fidelity7170-background-repro contains a research-only renderer
+probe decoding native source rows/name tables from captured state, not synthetic
+art or a guest-state patch.7172 contains matched normal/tall effects-on/off,
+normal256/320 Pride and width-only controls, an original-clock AOT/LLE pair,
+unchanged ending rain and original/pending pixel-difference bounds.7173 checks
+all other main/bonus worlds and the four MD-background controls in normal/tall
+views; native frame, full WRAM and displayed PNGs match before/after. Stampede
+uses its special scene path (stage_detected=false is expected there); the
+selected ordinary and bonus controls are initialized and nonblank.7174 actual
+Windows captures reviewed for King, clouds and normal Pride; preliminary black
+Pride captures were taken before its first render and superseded after waiting
+for a nonblank game frame. Original source/depth clocks, actors, audio, prepared
+assets and both frameworks remain unchanged. No full new TAS/walkthrough claim.
+
 ## Current delivery7147: independent sprite colours
 
 Delivery7147 adds independent custom colours to the existing semantic sprite palette fields, HUD and caption palette fields. Each resource keeps separate SNES/Genesis shade edits across all levels. The old per-level foreground/background/objects shade maps remain readable and usable; an explicit sprite edit takes precedence for its original selected-source shade. No new source-choice nodes or gameplay/save binding changes. The editor is F12 > Artwork > selected sprite > Palette > Custom colours for this sprite, with subject drawings, original/pending previews, reset shade/current-source edits, live Apply, Undo and named preset import/export. Where a gallery is unavailable it can use the current scene subject shades and a before/after scene preview; a currently absent subject asks the player to visit its scene. This follows existing resource categories; it is not separate editing of each individual enemy instance or arbitrary separate animation frame. Whole-layer colours remain separate.
