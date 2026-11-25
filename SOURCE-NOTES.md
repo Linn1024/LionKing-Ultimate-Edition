@@ -25,4 +25,4 @@ Optional external screen effects include a GLSL adaptation of the installed BizH
 
 The current source includes optional scenery effects, independent custom sprite colours and a stable palette editor with separate SNES/Genesis edits, pose previews, resets and preset saving. The Best enables the optional scenery effects. The Windows Custom Colours release includes these features.
 
-The source now also fixes scenery shade-selection stability, adapts optional Genesis scrolling to the SNES artwork boundaries, and corrects Pride Lands background wrapping. The Windows Scenery Fixes release includes these corrections and the Custom Colours features.
+The source and Windows Widescreen Performance release include stable scenery shade selection, complete Hakuna forest coordinates and finite Pride Lands background framing. Expanded Genesis foreground tiles and the extra-wide Pride background decode in tile-sized runs, improving rendering throughput while retaining the original picture and game updates. Targeted tests cover normal and expanded views, mixed colours, compiled/interpreter agreement and actual Windows presentation.

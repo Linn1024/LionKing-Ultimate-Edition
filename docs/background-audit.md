@@ -1,3 +1,74 @@
+## Delivery7187: complete logical source rows and finite Pride framing
+
+Supersedes7175's hardware-cache inference. A512-column VRAM name-table period
+is not evidence that an authored picture is seamless. Similarly, the bottom of
+a256-row streaming cache is not the bottom of the original background artwork.
+
+Full original descriptor+1A maps were decoded under ignored7181 using the
+current scene's own native BG2 character bank, names, flips and palettes:
+Pride512x360 (5760 name bytes), King512x248 (3968), Hakuna512x512 (8192),
+Return512x224 (3584), Pride Rock512x256 (4096). Visible names were matched back
+to the complete source rows, including the streamed cache replacement rows.
+These remain separate scene recipes, not a general SNES/MD plane equivalence.
+
+### Hakuna C00481
+
+Mode1 BG2 remains BGSC49 hex, an8px512x256 hardware ring, with the original
+native vertical scroll/streaming initialization. The authored picture is512
+rows high. Flat source rows223..257 are followed by detailed forest starting
+at258 and continuing through406. At captured VOFS73, raster184 samples258.
+The previous &255 conversion incorrectly changed that to source2: the tips
+used the fixed top-sky rate while the rest of the trees scrolled. Later old
+wrap thresholds could split the forest again. Preserve source bit8 with &511
+when choosing the optional depth band; retain8/144/240 boundaries and the
+original native sampling of the streamed VRAM ring. All forest rows258..406
+now share half-camera motion. Do not move the boundary through the trees.
+Source-off native pictures and independently rendered MD pictures stay exact.
+
+### Pride Lands C00387 / C0080D
+
+The complete original native512x360 picture has distinct left/right ends.
+The original256px SNES view ends within that canvas; its hardware-ring wrap
+is never permission to append the left end in an extended normal viewport.
+Use the existing complete native map/character-bank cache for the expanded
+SNES-art view, limit the origin of the whole viewport to0..max(0,512-width),
+and preserve every row's own palette, priorities, brightness and color math.
+Never stretch one column or wrap the visible normal canvas back to source0.
+
+With the SNES camera, retain captured HOFS/VOFS placement and the existing
+viewport column; the original256x224 path remains bit-exact. With the MD
+camera, use the independently reviewed original MD Pride08BA88 placement:
+X=view_left*38/256, Y=camera_y*20/256. A separate dump of the selected MD
+Plane B confirms the matching Pride Rock landmark coordinates within this
+specific source canvas; SNES retains its own higher-colour names/tiles/palette.
+This is a camera/viewport adapter, not an assumption about other scenes.
+
+Tall SNES-art views still fit all360 original rows as before. When width
+exceeds512, added columns reflect the existing picture's edges; that is an
+explicit presentation extension, not newly authored scenery or a repeat
+claimed to exist in the console game. MD's normal whole-view clamp is retained;
+only its >512px extension now reflects rather than jumping to the left edge.
+
+### Verification and limits
+
+7183 covers healthy original entry, moving Hakuna forest, normal320px Pride
+near/far right, original256px SNES, width-only and tall windows, source-off
+Hakuna and normal MD controls. Whole native frame/WRAM hashes match; expected
+picture differences stay in the scenery.300-field Pride/forest continuations
+also preserve game state.7184 actual Windows captures are nonblank and show
+the treetops, finite Pride composition and MD extra-wide extension.7185 checks
+the related King/Return/cloud effects and the other main/bonus scenes unchanged;
+Stampede retains its separately framed special path.7186 repeats critical
+checks on final player58eb4f819ad7cf0f002371191ec2782f3973853fc9f886b65b2e47db95ecabee,
+including original-clock compiled/interpreter agreement at the actual forest.
+
+Measured no-pace throughput did not regress. The sampled all-MD800x450 case
+remains near55 updates/sec before/after; this work does not claim to fix that
+existing rendering cost. No full new walkthrough/TAS or universal completeness
+claim. No game instructions, CPU/actor/camera state, audio, source choices,
+prepared-asset/save formats or frameworks changed. Source-coordinate helpers
+and finite-view bounds have a small asset-free production-function regression.
+
 ## Delivery7175: SNES artwork boundaries and positive Pride wrap
 
 Supersedes7116's use of MD row numbers on SNES artwork. Sources/planes are
@@ -3969,3 +4040,12 @@ Focused6959 saved paused old/new120 fields preserve entire WRAM/native picture; 
 
 
 Audit7126 qualification: the inherited first/second ostrich-death tapes finish in the normal King giraffe section with this delivery, so7125 qualifies those endpoints only and does not certify active ostrich gameplay/transitions. Fresh Stampede remains a fixed source canvas by design; normal and expanded-window presentation are checked without claiming a new wide Mode7 renderer. Initial loading/death/blank samples from7118 are not accepted as healthy level coverage. Fresh7124 samples replace Graveyard/Stampede/Bug Toss. No claim of universal bug absence, a new full walkthrough, or fresh TAS completion.
+
+
+## Current delivery7199: expanded Genesis scenery throughput
+
+Expanded Genesis foreground rendering resolves each 8-pixel tile run once instead of repeating its map/block lookup for every pixel. Pride Lands' extra-wide Genesis background uses the same approach with the previously reviewed camera rate and mirrored picture edges. Original scalar sampling handles unsupported runs. Tile transparency, priorities, palette selection, custom colours and animation remain in the existing compositor. Ostrich-specific, Bug Toss-specific and original-height paths retain their sampling. No guest/gameplay, audio, source geometry, asset format, save or framework changes.
+
+Measured at logical800x450 (physical2400x1350): same Pride Lands continuation rises from55.23 to78.54 updates/sec unpaced. Actual paced Windows check improves54.65 to60.10 completed/rendered updates/sec (steady median over480 fields). Native PPU, complete WRAM and displayed PNG hashes match before/after. Normal/expanded main and bonus samples, mixed artwork/colours and two inherited King continuation tapes also match. Stampede remains the existing fixed canvas; those King tape endpoints do not certify every active ride transition. Original-clock compiled/LLE control and ROM-free tile-run regression pass. Nonblank actual Windows capture reviewed. This is a focused scenery optimization, not a new full walkthrough or a universal60-update guarantee at every resolution.
+
+Local launchers use dist/installed-preview7196/LionKing.exe, SHA256 540d37152a9fa64a021ae3be7ff95806bf6d779ad46d7db3f9ff580649094db6. Setup retained all prepared data; only player identity/preparation timestamp changed. Existing settings, saves and profiles retained; two recording checkpoint receipts revalidated. Public source/download unchanged. Evidence: build/fidelity7199-md-throughput-delivery/report.json; source baseline7195, exact controls7197, paced/window/clock7198.

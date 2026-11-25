@@ -676,3 +676,36 @@ void TlkMdScenePreparedPalette(unsigned level,const uint16_t colors[64]) {
         memcpy(scenes[level].palette,colors,sizeof scenes[level].palette);cache_level=-1;
     }
 }
+
+/* Resolve names once per tile row; scalar sampling remains the fallback. */
+static int MdSceneTileRow(unsigned level,const MdScene *s,unsigned word,unsigned layer,unsigned x,unsigned y,uint16_t *out,unsigned count){
+ if(!out || !count || count>8-(x&7))return 0;
+ unsigned py=y&7;if(word&0x1000)py=7-py;
+ size_t at=(word&0x7ff)*32+py*4;
+ if(level==5 && s->tile_size==28448+4*1440 && at>=28448 && at<28448+1440)at+=hakuna_phase*1440;
+ if(at+3>=s->tile_size)return 0;
+ unsigned token=((word&0x8000?(layer?11:12):(layer?7:8))<<12)|0x800|(layer<<8)|((word>>13&3)<<4);
+ for(unsigned j=0;j<count;j++){unsigned px=(x+j)&7;if(word&0x800)px=7-px;
+  unsigned pixel=s->tiles[at+px/2]>>((px&1)?0:4)&15;out[j]=pixel?(uint16_t)(token|pixel):0;}
+ return 1;
+}
+int TlkMdSceneMappedPixels(unsigned level,unsigned cell,unsigned x,unsigned y,uint16_t *out,unsigned count){
+ level=scene_index(level);if(!TlkMdSceneReady(level)||!scenes[level].native_blocks)return 0;const MdScene *s=&scenes[level];
+ unsigned id=(cell&0xfff8)/8;if(id>=s->native_count)return 0;unsigned selected=s->native_blocks[id];
+ size_t position=(size_t)(y/16)*s->native_row_bytes+(x/16)*2;
+ if(s->paired_blocks && position+1<s->native_map_size && x<s->native_row_bytes*8 &&
+  (s->native_map[position]|(unsigned)s->native_map[position+1]<<8)==cell && s->paired_blocks[position/2]!=0xffff)selected=s->paired_blocks[position/2];
+ if(selected==0xffff)return 0;unsigned block=selected+(((y&15)/8)*2+(x&15)/8)*2;
+ if(block+2>s->block_size)return 0;return MdSceneTileRow(level,s,be16(s->blocks+block),0,x,y,out,count);
+}
+int TlkMdSceneForegroundPixels(unsigned level,int x,int y,uint16_t *out,unsigned count){
+ level=scene_index(level);if(!TlkMdSceneReady(level))return 0;const MdScene *s=&scenes[level];
+ if(x<0||y<0||x>=(int)s->row_bytes*8||y>=(int)s->rows*16)return 0;
+ size_t cell=(size_t)(y/16)*s->row_bytes+(unsigned)(x/16)*2;unsigned block=(be16(s->map+cell)&0xfff8)+((y&8)?4:0)+((x&8)?2:0);
+ if(block+2>s->block_size)return 0;return MdSceneTileRow(level,s,be16(s->blocks+block),0,(unsigned)x,(unsigned)y,out,count);
+}
+int TlkMdSceneBackgroundPixels(unsigned level,int x,int y,uint16_t *out,unsigned count){
+ level=scene_index(level);if(!TlkMdSceneBackgroundReady(level))return 0;const MdScene *s=&scenes[level];
+ x=wrap(x,512);y=wrap(y,(int)(s->bg_size/128)*8);unsigned word=be16(s->background+(size_t)(y/8)*128+(unsigned)(x/8)*2);
+ return MdSceneTileRow(level,s,word,1,(unsigned)x,(unsigned)y,out,count);
+}

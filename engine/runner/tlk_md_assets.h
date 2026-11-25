@@ -15,6 +15,13 @@ int TlkMdAssetsBindSnes(const uint8_t *rom, size_t size);
 int TlkMdAssetsLoadCache(const char *path,const uint8_t snes_hash[32],const uint8_t md_hash[32]);
 int TlkMdAssetsSaveCache(const char *path,const uint8_t snes_hash[32],const uint8_t md_hash[32]);
 uint16_t TlkMdSceneMappedPixel(unsigned level, unsigned native_cell, unsigned x, unsigned y);
+/* Decode1..8 pixels within one8px tile. Returns1 only for a complete
+ * supported run; otherwise keep the original scalar fallback. Tokens retain
+ * transparency, palette, priority, flips and the current animation phase.
+ * Background inputs are authored-plane coordinates, not a scroll recipe. */
+int TlkMdSceneMappedPixels(unsigned level,unsigned native_cell,unsigned x,unsigned y,uint16_t *out,unsigned count);
+int TlkMdSceneForegroundPixels(unsigned level,int x,int y,uint16_t *out,unsigned count);
+int TlkMdSceneBackgroundPixels(unsigned level,int x,int y,uint16_t *out,unsigned count);
 int TlkMdSceneCoverage(unsigned level, unsigned *matched, unsigned *total);
 /* Cancel co-located copies, then pair only a unique remaining marker relocation. */
 int TlkMdSceneMarkerMove(unsigned level,unsigned marker,int native_x,int native_y,int *md_x,int *md_y);

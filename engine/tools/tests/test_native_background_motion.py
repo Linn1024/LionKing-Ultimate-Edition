@@ -24,6 +24,21 @@ class NativeBackgroundMotion(unittest.TestCase):
 static struct { unsigned wrap; } s_cant_wait;
 // PRODUCTION
 int main() {
+    // Source coordinates outlive the 256-row hardware streaming ring.
+    assert(NativeMotionSourceRow(5,184,73,0)==258);
+    assert(NativeMotionSourceRow(5,190,73,0)==264);
+    assert(NativeMotionSourceRow(1,151,0,0)==152);
+    assert(NativeMotionSourceRow(1,151,0,1)==151);
+    // The entire finite Pride view must fit before reflecting added margins.
+    assert(NativePrideOrigin(-32,320)==0);
+    assert(NativePrideOrigin(208,320)==192);
+    assert(NativePrideOrigin(252,256)==252);
+    assert(NativePrideOrigin(900,800)==0);
+    for (int width : {256,320,480,512})
+        for (int offset=0; offset<1024; ++offset) {
+            int origin=NativePrideOrigin(offset,width);
+            assert(origin>=0 && origin+width<=512);
+        }
     for (int camera : {7, 255, 1023, 2843}) {
         // Every hill pixel, including its tip and bottom shading, shares a rate.
         for (int row=152; row<200; ++row)
@@ -36,6 +51,8 @@ int main() {
         assert(NativeMotionOffset(5,camera,144)==camera/4);
         assert(NativeMotionOffset(5,camera,239)==camera/4);
         assert(NativeMotionOffset(5,camera,240)==camera/2);
+        for (int row=258; row<=406; ++row)
+            assert(NativeMotionOffset(5,camera,row)==camera/2);
         // Return already has its own SNES raster joins, not the MD joins.
         assert(NativeMotionOffset(8,camera,96)==camera/8);
         for (int row=97; row<153; ++row)

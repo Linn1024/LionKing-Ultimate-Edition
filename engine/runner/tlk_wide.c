@@ -237,7 +237,6 @@ static int s_md_foreground, s_md_background,s_md_cub_frames,s_cub_death_frame;
 static int s_md_layout;
 static int s_native_md_layout;
 static unsigned s_md_layout_y;
-static int s_native_pride_bg_edges;
 /* Internal source routing; serialized sprite-map roles remain unchanged. */
 #include "tlk_enemy_art_family.h"
 enum { kAdultCheckpointRole=TLK_MD_SPRITE_ROLE_COUNT, kPorcupineArtRole, kSceneRoleCount };
@@ -2115,6 +2114,15 @@ static void PreparePanorama(const Line *l,unsigned level) {
  * already select their source row directly. Keep each picture's joins. */
 static int s_native_background_motion,s_native_firelight;
 static int SceneryFloor(int n,unsigned shift){return n>=0?n/(1<<shift):-((-n+(1<<shift)-1)/(1<<shift));}
+/* The512-row Hakuna picture is streamed through a256-row VRAM ring.
+ * Retain the artwork's source bit8 when choosing its depth band. */
+static int NativeMotionSourceRow(unsigned level,int y,unsigned vofs,int panorama){
+ return panorama?y:(y+1+(int)vofs)&(level==5?511:255);
+}
+static int NativePrideOrigin(int origin,int width){
+ int last=width<512?512-width:0;
+ return origin<0?0:origin>last?last:origin;
+}
 static int NativeMotionOffset(unsigned level,int camera,int source_y){
  if(level==1){
   unsigned input=((unsigned)camera+s_cant_wait.wrap)&65535;
@@ -2283,6 +2291,12 @@ static uint16_t BgPixel(const Line *l, const uint16_t *vram, unsigned layer, int
         int sx=Reflect(x+column+(320-width)/2,320);
         return TlkMdSceneBackgroundViewPixel(4,s_bg_view_left,s_bg_camera[1],sx,y0,320);
     }
+    /* The original Pride picture has distinct ends in both consoles.
+     * Its MD sampler already clamps a normal complete view. Beyond512px,
+     * reflect the added area instead of restarting at the left-hand sky. */
+    if(layer==1 && s_md_background && s_md_level==0 && width>512)
+        return TlkMdSceneBackgroundViewPixel(0,s_bg_view_left,s_bg_camera[1],
+            (int)PanoramaX(x+column),y0,width);
     if (layer==1 && s_md_background)
         return TlkMdSceneBackgroundViewPixel(s_md_level,s_bg_view_left,s_bg_camera[1],x+column,y0,width);
     if(s_toss_canvas && layer<2){
@@ -2316,12 +2330,6 @@ static uint16_t BgPixel(const Line *l, const uint16_t *vram, unsigned layer, int
            y0>=0 && y0<152 && !(l->hofs[1]&1023)) {
             unsigned u=(unsigned)source_x&511;
             source_x=u<256?(int)u:511-(int)u;
-        }
-        /* Keep the established left-margin extension before source zero.
-         * Positive scroll must retain the native512-column name-table wrap:
-         * clamping it pins the right-hand view to a single column near exit. */
-        if (layer==1 && s_native_pride_bg_edges && (x<0 || x>=256)) {
-            if (source_x<0) source_x=0;
         }
         px = source_x & 1023;
         py = (int)(((unsigned)y0 + 1 + l->vofs[layer]) & 1023);
@@ -3352,6 +3360,31 @@ static const Line *WorldPresentationLine(int y) {
     }
     return l;
 }
+/* Expanded MD planes use their existing address recipes, decoded in
+ * tile-sized runs. Failed native/MD matches still use BgPixel exactly. */
+static void MdAreaForegroundRow(uint16_t *out,int width,int column,const Line *l,int y0,int ox,int oy,int left,int right){
+ for(int i=0;i<width;){
+  int x=i-column,wx=ox+x,wy=oy,run=wx<0?1:8-(wx&7);if(run>width-i)run=width-i;
+  int got=0;
+  if(s_md_layout)got=TlkMdSceneForegroundPixels(s_md_level,wx,wy+(int)s_md_layout_y,out+i,(unsigned)run);
+  else if(wx>=0&&wy>=0&&wx<(int)s_frame.level.rowb*8&&wy<(int)s_frame.level.rows*16){
+   size_t at=(size_t)(wy/16)*s_frame.level.rowb+(unsigned)(wx/16)*2;
+   got=TlkMdSceneMappedPixels(s_md_level,rd16(s_frame.level.map+at),(unsigned)wx,(unsigned)wy,out+i,(unsigned)run);
+  }
+  if(!got)for(int j=0;j<run;j++){int sx=x+j;out[i+j]=BgPixel(l,s_vram[l->vram],0,sx,y0,(s_area_active&&(y0<0||y0>=224))||(sx<0?left:sx>=256&&right),ox,oy,column,width);}
+  i+=run;
+ }
+}
+static void MdPrideBackgroundRow(uint16_t *out,int width,int column,const Line *l,int by,int ox,int oy){
+ for(int i=0;i<width;){
+  int sx=(int)PanoramaX(i),reverse=(i&512)!=0,run=reverse?(sx&7)+1:8-(sx&7);if(run>width-i)run=width-i;
+  uint16_t tmp[8];int low=reverse?sx-run+1:sx;
+  if(TlkMdSceneBackgroundPixels(0,low,s_bg_camera[1]*20/256+by,tmp,(unsigned)run))
+   for(int j=0;j<run;j++)out[i+j]=tmp[reverse?run-1-j:j];
+  else for(int j=0;j<run;j++)out[i+j]=BgPixel(l,s_vram[l->vram],1,i+j-column,by,0,ox,oy,column,width);
+  i+=run;
+ }
+}
 static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     s_handoff_width=width;
     int source_line=y0<0?0:y0>=224?223:y0;
@@ -3506,7 +3539,6 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         s_md_layout=1;
     s_md_background=md_scene && (pride || graveyard || exile || hakuna || destiny || be_prepared || simbas_return || pride_rock || postfight_scene || bonus) && TlkMdSceneBackgroundReady(s_md_level) && TlkResourcesUseMd("graphics.scenery.background");
     if(s_cw_scene)s_md_background=TlkResourcesUseMd("graphics.scenery.background");
-    s_native_pride_bg_edges=pride && !s_md_background;
     /* These two scenes own a finite512-wide BG2 panorama. Tall windows show
      * every authored row instead of a224-row slice clipped by camera vofs.
      * Nearest-row fitting changes scenery only; foreground and actors retain
@@ -3549,12 +3581,34 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
             s_area_sky_color=StableEdge(0,s_area_sky_color);s_area_sky_edge_valid=1;
         }
     }
+    /* Pride is one finite512x360 picture, not a seamless horizontal ring.
+     * In MD-camera play, keep its source canvas at that camera's reviewed
+     * placement. The pure256px SNES camera retains its original PPU picture.
+     * Tall views still fit every authored row; larger widths reflect added
+     * margins only after the complete picture, never wrap it back to its left. */
+    int finite_pride=pride && s_frame.stage && !s_md_background &&
+        s_native_panorama_height[0] &&
+        (width>256 || anchor_pride || TlkResourcesUseMd("gameplay.camera"));
+    int finite_pride_scroll=0;
+    if(finite_pride){
+        int md_camera=TlkResourcesUseMd("gameplay.camera");
+        int origin=md_camera?s_bg_view_left*38/256:
+            (int)(background_line->hofs[1]&511)-column;
+        finite_pride_scroll=column+NativePrideOrigin(origin,width);
+        PreparePanorama(background_line,0);
+        if(!anchor_pride){
+            background_y=md_camera?s_bg_camera[1]*20/256+y0:
+                y0+1+(int)background_line->vofs[1];
+            if(background_y<0)background_y=0;
+            if(background_y>=(int)s_native_panorama_height[0])
+                background_y=(int)s_native_panorama_height[0]-1;
+        }
+    }
     s_scenery_palette[0]=TlkResourcesUseMd("graphics.scenery.foreground.palette");
     Line moving_background,moving_source;
     if(s_native_background_motion){
         moving_background=*background_line;
-        int row=anchor_pride?background_y:
-            (background_y+1+(int)background_line->vofs[1])&255;
+        int row=NativeMotionSourceRow(s_md_level,background_y,background_line->vofs[1],anchor_pride);
         moving_background.hofs[1]=(uint16_t)NativeMotionOffset(s_md_level,s_md_level==1?s_cant_wait.camera:s_bg_camera[0],row);
         background_line=&moving_background;moving_source=*l;moving_source.hofs[1]=moving_background.hofs[1];l=&moving_source;
     }
@@ -3877,7 +3931,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         if(!world_row)continue;
         /* Decoded MD scenery spans the view directly. The native tilemap-ring
          * mirror heuristic must not substitute different margin coordinates. */
-        if (s_ride_scene || (layer==1 && (anchor_pride || fitted_bands)) || (layer==0 ? s_md_foreground : s_md_background)) continue;
+        if (s_ride_scene || (layer==1 && (anchor_pride || finite_pride || fitted_bands)) || (layer==0 ? s_md_foreground : s_md_background)) continue;
         /* A complete selected Return foreground already has world coordinates;
          * it does not sample the native ring in the margins. Tall BG2 rows
          * outside the authored canvas use boundary tokens below, so testing
@@ -3931,8 +3985,14 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
     int native_backdrop_ready=fast_fixed || (fast_native && !(l->tm&4) && !(l->cgadsub&0x20));
     uint32_t native_backdrop=native_backdrop_ready?NativeFixedBackdropRgb(l,mult,half):0;
 
-    int panorama_scroll=anchor_pride?(s_native_background_motion?(int)background_line->hofs[1]:PanoramaScroll(background_line)):0;
+    int panorama_scroll=finite_pride?finite_pride_scroll:anchor_pride?(s_native_background_motion?(int)background_line->hofs[1]:PanoramaScroll(background_line)):0;
     const uint16_t *bottom_background=BottomBackgroundRow(l,width,column,y0,ox,oy);
+    int md_row=s_area_active && s_frame.stage && world_row && s_md_foreground &&
+        !(s_cw_scene && rd16(s_frame.ram+0x0a56)) && !s_ride_scene && !s_toss_canvas && s_md_level!=10;
+    int md_bg_row=s_area_active && s_frame.stage && s_md_background && s_md_level==0 && width>512;
+    uint16_t md_foreground[TLK_WIDE_MAX_WIDTH],md_background[TLK_WIDE_MAX_WIDTH];
+    if(md_bg_row)MdPrideBackgroundRow(md_background,width,column,background_line,fitted_bands?background_y:y0,ox,oy);
+    if(md_row)MdAreaForegroundRow(md_foreground,width,column,l,y0,ox,oy,map_left,map_right);
     uint16_t native_foreground[TLK_WIDE_MAX_WIDTH];
     int fast_native_row=world_row && fast_native && (anchor_pride || fitted_bands) && !s_native_md_layout &&
         (l->tm&3)==3 && !(l->tmw&3) && !(l->bgmode&0x30) && !mirror[0];
@@ -3944,7 +4004,7 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
         int x = i - column;
         uint16_t main = 0x0500, sub = 0x0500;
         if(fast_native_row && !obj[i] && i>=s_vis_lo && i<s_vis_hi && y0>=s_area_min_y && y0<s_area_max_y){
-            uint16_t a=native_foreground[i],b=anchor_pride?
+            uint16_t a=native_foreground[i],b=(anchor_pride || finite_pride)?
                 s_panorama_pixels[background_line->vram][(unsigned)background_y*512+PanoramaX(x+panorama_scroll)]:
                 cached_return_bg?native_background[i]:
                 BgPixel(background_line,s_vram[background_line->vram],1,x,background_y,false,ox,oy,column,width);
@@ -3981,7 +4041,9 @@ static void ComposeLine(uint32_t *out, int width, int column, int y0) {
                 ((layer==1 && !anchor_pride) || (layer==0 && ring_row &&
                  !(s_ride_exit_shift>=0 && ox+x>=s_ride_exit_shift+(int)rd16(s_frame.ram+0xa56)+512)));
             if(repeat && i>=512 && ride_token_valid[layer][i&511])px=ride_tokens[layer][i&511];
-            else if(layer==1 && anchor_pride)
+            else if(layer==0 && md_row)px=md_foreground[i];
+            else if(layer==1 && md_bg_row)px=md_background[i];
+            else if(layer==1 && (anchor_pride || finite_pride))
                 px=s_panorama_pixels[background_line->vram][(unsigned)background_y*512+
                     PanoramaX(x+panorama_scroll)];
             else if(layer==1 && fitted_bands)
